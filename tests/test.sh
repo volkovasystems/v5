@@ -329,6 +329,57 @@ finalize_daily_tap() {
     mv "$temp_file" "$DAILY_TAP_FILE"
 }
 
+# Check if TAP file has only timestamp changes and revert if so
+check_and_revert_timestamp_only_changes() {
+    local tap_file="$1"
+    
+    # Only check if we're in a git repository and file exists
+    if [ ! -f "$tap_file" ] || ! git rev-parse --git-dir >/dev/null 2>&1; then
+        return 0
+    fi
+    
+    # Check if file is tracked by git and has changes
+    if ! git ls-files --error-unmatch "$tap_file" >/dev/null 2>&1; then
+        return 0  # File not tracked, nothing to revert
+    fi
+    
+    # Check if file has any changes
+    if ! git diff --quiet "$tap_file" 2>/dev/null; then
+        # File has changes, check if they're only timestamps
+        
+        # Get all changed lines (excluding diff headers)
+        local diff_lines
+        diff_lines=$(git diff "$tap_file" | grep "^[+-]" | grep -v "^[+-][+-][+-]" || true)
+        
+        # Remove timestamp-only changes and see what's left
+        local significant_changes
+        significant_changes=$(echo "$diff_lines" | grep -v -E "^[+-]# (Generated|Started|Completed): " | grep -v "^$" | tr -d '\n' | tr -d ' ' || true)
+        
+        if [ -n "$significant_changes" ]; then
+            # There are significant changes beyond timestamps
+            if [ "$TAP_ONLY" != true ] && [ "$VERBOSE" = true ]; then
+                echo -e "${GREEN}💾 TAP file contains meaningful changes, keeping updated version${NC}"
+            fi
+            return 0
+        else
+            # Only timestamp changes detected, revert the file
+            if git checkout HEAD -- "$tap_file" >/dev/null 2>&1; then
+                if [ "$TAP_ONLY" != true ]; then
+                    echo -e "${YELLOW}⏰ Only timestamps changed, reverted to preserve original timestamps${NC}"
+                fi
+                return 0  # Success, but file was reverted
+            else
+                if [ "$TAP_ONLY" != true ] && [ "$VERBOSE" = true ]; then
+                    echo -e "${RED}⚠️  Failed to revert timestamp-only changes${NC}"
+                fi
+                return 0  # Don't fail the test run
+            fi
+        fi
+    fi
+    
+    return 0  # No changes or no revert needed
+}
+
 # Check prerequisites
 check_prerequisites() {
     # Check if Docker is available
@@ -495,6 +546,9 @@ run_tests_local() {
             echo -e "${CYAN}Date: $DATE_STAMP${NC}"
             echo -e "${CYAN}File Size: $(du -h "$DAILY_TAP_FILE" | cut -f1)${NC}"
         fi
+        
+        # Check if only timestamps changed and revert if so
+        check_and_revert_timestamp_only_changes "$DAILY_TAP_FILE"
     fi
 
     return $exit_code
