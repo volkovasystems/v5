@@ -43,8 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Requirements specification with exact dependencies
   - Executable permissions for all scripts
   - Production-ready repository URLs (volkovasystems/v5)
-  - Single source of truth VERSION file for consistent versioning
-  - Version display in all tools (--version, -v flags)
+
+- **Version Management System**
+  - Single source of truth `VERSION` file containing semantic version
+  - Version display support across all components:
+    - `./v5 --version` and `./v5 -v` flags in main executable
+    - Version logging in Python V5System core on startup
+    - Dynamic version fetching in remote installer (`get-v5.sh`)
+    - Version display during local installation (`install.sh`)
+    - Version command support in Python CLI (`python3 v5_system.py version`)
+  - Consistent version propagation from single file to all tools
+  - Professional version management following semantic versioning
 
 ### Technical Details
 - **Dependencies**: `pika`, `psutil`, `watchdog`, `PyYAML`
@@ -69,9 +78,26 @@ git clone https://github.com/volkovasystems/v5
 cd v5 && ./install.sh
 ```
 
+### Version Management
+```bash
+# Check version from any component
+./v5 --version                    # Main executable version check
+./v5 -v                          # Short version flag
+python3 src/core/v5_system.py -v # Python system version
+
+# Version is automatically displayed during installation
+./install.sh                     # Shows: Installing V5 v1.0.0
+curl -fsSL https://raw.githubusercontent.com/volkovasystems/v5/main/get-v5.sh | bash
+# Remote installer fetches and displays current version
+
+# Single file controls all versions
+cat VERSION                      # Contains: 1.0.0
+```
+
 ### Repository Structure
 ```
 v5/
+├── VERSION             # Single source of truth for version number
 ├── get-v5.sh           # Remote installation script
 ├── install.sh          # Local installation script  
 ├── v5                  # Main executable
