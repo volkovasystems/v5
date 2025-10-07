@@ -53,7 +53,7 @@ OPTIONS:
 
 TEST_SUITE:
     installation        Run installation tests only
-    core-system         Run core system tests only
+    core-tool           Run core tool tests only
     integration         Run integration tests only
     all                 Run all test suites (default)
 
@@ -65,6 +65,7 @@ EXAMPLES:
     $0 --local                     # Run tests locally
     $0 --local --tap               # Run tests locally with TAP output
     $0 --local --tap-only installation  # Output only TAP for installation tests
+    $0 --local --tap core-tool          # Run core tool tests with TAP output
     $0 --tap --verbose             # Generate TAP reports with verbose output
     $0 --watch                     # Watch for changes and rerun tests
 
@@ -116,7 +117,7 @@ parse_args() {
                 list_test_suites
                 exit 0
                 ;;
-            installation|core-system|integration|all)
+            installation|core-tool|integration|all)
                 TEST_SUITE="$1"
                 shift
                 ;;
@@ -138,8 +139,8 @@ list_test_suites() {
         echo -e "${GREEN}• installation${NC} - Installation script and executable tests"
     fi
 
-    if [ -f "$TEST_DIR/unit/test_core_system.bats" ]; then
-        echo -e "${GREEN}• core-system${NC}  - Core Python module and system tests"
+    if [ -f "$TEST_DIR/unit/test_core_tool.bats" ]; then
+        echo -e "${GREEN}• core-tool${NC}    - Core Python module and tool tests"
     fi
 
     echo -e "${GREEN}• integration${NC}  - Full integration tests with RabbitMQ"
@@ -162,8 +163,8 @@ generate_tap_filename() {
         "installation")
             filename_base="installation-tests"
             ;;
-        "core-system")
-            filename_base="core-system-tests"
+        "core-tool")
+            filename_base="core-tool-tests"
             ;;
         "integration")
             filename_base="integration-tests"
@@ -474,10 +475,10 @@ run_tests_local() {
     fi
 
     if [ "${TEST_SUITE:-all}" == "all" ] || \
-            [ "${TEST_SUITE:-all}" == "core-system" ]; then
+            [ "${TEST_SUITE:-all}" == "core-tool" ]; then
         
         if [ "$TAP_ONLY" != true ]; then
-            echo -e "\n${CYAN}Running core system tests...${NC}"
+            echo -e "\n${CYAN}Running core tool tests...${NC}"
         fi
         
         local test_start_time
@@ -487,16 +488,16 @@ run_tests_local() {
         if [ "$TAP_OUTPUT" = true ]; then
             # Capture BATS output for TAP conversion
             local bats_output
-            bats_output=$(bats "$TEST_DIR/unit/test_core_system.bats" 2>&1)
+            bats_output=$(bats "$TEST_DIR/unit/test_core_tool.bats" 2>&1)
             local bats_exit_code=$?
             test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
             
             if [ "$TAP_ONLY" = true ]; then
                 # For TAP-only mode, we'll collect all results and output at the end
-                add_to_daily_tap "core-system" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+                add_to_daily_tap "core-tool" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
             else
                 # Add to combined TAP file
-                add_to_daily_tap "core-system" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+                add_to_daily_tap "core-tool" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
                 
                 # Also display the output if verbose
                 if [ "$VERBOSE" = true ]; then
@@ -508,7 +509,7 @@ run_tests_local() {
                 exit_code=$bats_exit_code
             fi
         else
-            bats "$TEST_DIR/unit/test_core_system.bats" || exit_code=$?
+            bats "$TEST_DIR/unit/test_core_tool.bats" || exit_code=$?
             test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
         fi
     fi

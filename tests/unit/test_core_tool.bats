@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# test_core_system.bats - Unit tests for V5 core system components
+# test_core_tool.bats - Unit tests for V5 core tool components
 
 load "../test_helper"
 
@@ -21,10 +21,10 @@ teardown() {
 import sys
 sys.path.insert(0, '../src')
 try:
-    from core.v5_system import V5System
-    print('V5System import: SUCCESS')
+    from core.v5_tool import V5Tool
+    print('V5Tool import: SUCCESS')
 except ImportError as e:
-    print(f'V5System import failed: {e}')
+    print(f'V5Tool import failed: {e}')
     exit(1)
 "
     assert_success
@@ -95,22 +95,22 @@ print(f'Confidence: {alignment[\"confidence\"]:.2f}')
     assert_output_contains "Confidence:"
 }
 
-@test "V5System initializes with valid repository" {
+@test "V5Tool initializes with valid repository" {
     skip_if_missing "python3" "python3 not available"
 
     run timeout 10 python3 -c "
 import sys
 sys.path.insert(0, '../src')
-from core.v5_system import V5System
+from core.v5_tool import V5Tool
 from pathlib import Path
 
 try:
-    system = V5System(Path('.').absolute())
-    print('V5System initialization: SUCCESS')
-    print(f'Repository: {system.target_repo}')
-    print(f'Warp dir exists: {system.warp_dir.exists()}')
+    tool = V5Tool(Path('.').absolute())
+    print('V5Tool initialization: SUCCESS')
+    print(f'Repository: {tool.target_repo}')
+    print(f'Warp dir exists: {tool.warp_dir.exists()}')
 except Exception as e:
-    print(f'V5System initialization failed: {e}')
+    print(f'V5Tool initialization failed: {e}')
     exit(1)
 "
     assert_success

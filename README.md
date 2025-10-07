@@ -2,18 +2,18 @@
 
 **The Ultimate 5-Window Development Strategy**
 
-A productive development tool that transforms how you code using five specialized window strategies: intelligent assistance, automatic quality assurance, self-improving governance, strategic insights, and infinite extensibility.
+A lean, concise, performant productive development tool that transforms how you code using five specialized window strategies: intelligent assistance, quality enhancement, self-improving governance, strategic insights, and infinite extensibility.
 
 ## 🎯 Core Concept
 
-**One repository. Five specialized autonomous agents. Zero distractions. Maximum productivity.**
+**One repository. Five specialized productive development agents. Zero distractions. Maximum productivity.**
 
 ### The 5 Windows:
 
 - **Window A**: Your Interactive Development Hub (Human + AI)
-- **Window B**: Silent Code Fixer (Autonomous QA)
+- **Window B**: Silent Code Quality Enhancer (Productive QA)
 - **Window C**: Pattern Learning Governor (Protocol Creator)
-- **Window D**: Governance QA Auditor (Standards Guardian)
+- **Window D**: Standards Guardian (Quality Assurance)
 - **Window E**: Feature Insight Documentarian (Strategic Intelligence)
 
 ## 🚀 Installation
@@ -351,7 +351,7 @@ V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with
 
 # Run specific test suite
 ./test installation
-./test core-system
+./test core-tool
 
 # Run with RabbitMQ integration tests
 ./test --integration
@@ -366,7 +366,7 @@ V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with
 ```
 tests/
 ├── unit/                    # Unit tests for individual components
-│   └── test_core_system.bats   # Core Python module tests
+│   └── test_core_tool.bats     # Core Python module tests
 ├── integration/             # Integration and system tests
 │   └── test_installation.bats  # Installation script tests
 ├── fixtures/                # Test data and sample files
@@ -396,11 +396,11 @@ The test suite runs in isolated Docker containers with:
 - ✅ Python syntax validation
 - ✅ Documentation completeness
 
-#### Core System Tests (`test_core_system.bats`)
+#### Core Tool Tests (`test_core_tool.bats`)
 - ✅ Python module imports and dependencies
 - ✅ Goal parsing and YAML validation
 - ✅ Request alignment checking
-- ✅ V5System initialization
+- ✅ V5Tool initialization
 - ✅ Window implementations
 - ✅ Messaging configuration
 - ✅ Error handling without crashes
@@ -471,10 +471,10 @@ sudo git clone https://github.com/bats-core/bats-assert.git /usr/lib/bats/bats-a
 
 # Run specific test suite with TAP output
 ./test --local --tap installation
-./test --local --tap-only core-system
+./test --local --tap-only core-tool
 
 # Run specific test file directly with BATS
-bats tests/unit/test_core_system.bats
+bats tests/unit/test_core_tool.bats
 
 # Run with TAP output using BATS directly
 bats --tap tests/integration/test_installation.bats
@@ -519,7 +519,7 @@ Test results are saved with descriptive names for clarity:
 test-results/
 ├── all-tests-combined-2025-10-07.tap    # All test suites combined
 ├── installation-tests-2025-10-07.tap    # Installation tests only
-├── core-system-tests-2025-10-07.tap     # Core system tests only
+├── core-tool-tests-2025-10-07.tap       # Core tool tests only
 ├── integration-tests-2025-10-07.tap     # Integration tests only
 └── README.md                             # TAP file format documentation
 ```
@@ -589,7 +589,7 @@ Basic performance benchmarks are included:
 
 ```bash
 # Test import performance
-time python3 -c "from core.v5_system import V5System"
+time python3 -c "from core.v5_tool import V5Tool"
 
 # Test goal parsing performance
 time python3 -c "parser.parse() for _ in range(100)"

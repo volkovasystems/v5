@@ -78,7 +78,7 @@ download_files_with_curl() {
     mkdir -p src/core src/utils src/windows
 
     # Download Python files
-    curl -fsSL "$REPO_URL/raw/main/src/core/v5_system.py" -o src/core/v5_system.py
+    curl -fsSL "$REPO_URL/raw/main/src/core/v5_tool.py" -o src/core/v5_tool.py
     curl -fsSL "$REPO_URL/raw/main/src/utils/messaging.py" -o src/utils/messaging.py
     curl -fsSL "$REPO_URL/raw/main/src/utils/goal_parser.py" -o src/utils/goal_parser.py
     curl -fsSL "$REPO_URL/raw/main/src/windows/window_a.py" -o src/windows/window_a.py

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-V5 Development Automation Tool
+V5 - 5 Strategies Productive Development Tool
 5-Window Development Strategy with RabbitMQ Integration
 
 Core tool controller for managing all 5 windows and coordination.
+Lean, concise, performant productive development tool.
 """
 
 import os
@@ -16,13 +17,13 @@ from typing import Dict, List, Optional
 import logging
 from datetime import datetime
 
-class V5System:
-    """Main controller for the V5 development automation tool"""
+class V5Tool:
+    """Main controller for the V5 productive development tool"""
 
     def __init__(self, target_repository: str):
-        """Initialize the V5System with target repository path."""
+        """Initialize the V5Tool with target repository path."""
         self.target_repo = Path(target_repository).absolute()
-        self.system_platform = platform.system().lower()
+        self.platform = platform.system().lower()
         self.warp_dir = self.target_repo / '.warp'
         self.v5_root = Path(__file__).parent.parent.parent
 
@@ -56,7 +57,7 @@ class V5System:
         log_dir.mkdir(exist_ok=True)
 
         log_file = log_dir / (
-            f"v5_system_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+            f"v5_tool_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
         )
 
         logging.basicConfig(
@@ -68,8 +69,8 @@ class V5System:
             ]
         )
 
-        self.logger = logging.getLogger('V5System')
-        self.logger.info(f"V5 System version: {self.version}")
+        self.logger = logging.getLogger('V5Tool')
+        self.logger.info(f"V5 Tool version: {self.version}")
 
     def initialize_repository(self):
         """Initialize the target repository with .warp structure"""
@@ -295,11 +296,11 @@ version: "1.0"
             )
             if 'rabbitmq-server' in external_deps:
                 self.logger.info("To install RabbitMQ:")
-                if self.system_platform == 'linux':
+                if self.platform == 'linux':
                     self.logger.info("  sudo apt-get install rabbitmq-server")
-                elif self.system_platform == 'darwin':
+                elif self.platform == 'darwin':
                     self.logger.info("  brew install rabbitmq")
-                elif self.system_platform == 'windows':
+                elif self.platform == 'windows':
                     download_url = (
                         "https://github.com/rabbitmq/rabbitmq-server/releases"
                     )
@@ -347,14 +348,14 @@ version: "1.0"
     ) -> Optional[int]:
         """Launch a single window based on the platform"""
         try:
-            if self.system_platform == 'darwin':  # macOS
+            if self.platform == 'darwin':  # macOS
                 # Try Warp first, fall back to Terminal
                 cmd = [
                     'open', '-a', 'Warp',
                     f'--args', '--title', title,
                     '--command', f'cd {self.target_repo} && python3 {script_path}'
                 ]
-            elif self.system_platform == 'linux':
+            elif self.platform == 'linux':
                 # Try various terminals
                 terminals = [
                     (
@@ -386,7 +387,7 @@ version: "1.0"
                 else:
                     self.logger.error("No suitable terminal found")
                     return None
-            elif self.system_platform == 'windows':
+            elif self.platform == 'windows':
                 # Windows PowerShell or Command Prompt
                 cmd = [
                     'powershell', '-Command',
@@ -396,7 +397,7 @@ version: "1.0"
                     )
                 ]
             else:
-                self.logger.error(f"Unsupported platform: {self.system_platform}")
+                self.logger.error(f"Unsupported platform: {self.platform}")
                 return None
 
             # Set working directory
@@ -428,7 +429,7 @@ version: "1.0"
 
         for window_id, pid in pids.items():
             try:
-                if self.system_platform == 'windows':
+                if self.platform == 'windows':
                     subprocess.run(['taskkill', '/PID', str(pid), '/F'], check=True)
                 else:
                     subprocess.run(['kill', str(pid)], check=True)
@@ -460,7 +461,7 @@ def main():
         sys.exit(0)
 
     if len(sys.argv) < 2:
-        print("Usage: python3 v5_system.py <target_repository_path> [command]")
+        print("Usage: python3 v5_tool.py <target_repository_path> [command]")
         print("Commands: init, start, stop, status, version")
         print("Options: --version, -v")
         sys.exit(1)
@@ -469,7 +470,7 @@ def main():
     command = sys.argv[2] if len(sys.argv) > 2 else 'start'
 
     try:
-        v5 = V5System(target_repo)
+        v5 = V5Tool(target_repo)
 
         if command == 'init':
             v5.initialize_repository()
