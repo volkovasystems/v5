@@ -59,6 +59,7 @@ setup_v5_test_env() {
     
     # Copy shell scripts
     cp "$V5_PROJECT_ROOT/install.sh" . 2>/dev/null || echo "Warning: Could not copy install.sh"
+    cp "$V5_PROJECT_ROOT/uninstall.sh" . 2>/dev/null || echo "Warning: Could not copy uninstall.sh"
     cp "$V5_PROJECT_ROOT/get-v5.sh" . 2>/dev/null || echo "Warning: Could not copy get-v5.sh"
     cp "$V5_PROJECT_ROOT/test" . 2>/dev/null || echo "Warning: Could not copy test script"
     
@@ -75,7 +76,7 @@ setup_v5_test_env() {
     fi
 
     # Ensure executables have correct permissions
-    chmod +x v5 install.sh get-v5.sh test 2>/dev/null || true
+    chmod +x v5 install.sh uninstall.sh get-v5.sh test 2>/dev/null || true
 
     # Set up Python path
     export PYTHONPATH="$TEST_TEMP_DIR/src:${PYTHONPATH:-}"

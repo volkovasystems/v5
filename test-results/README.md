@@ -11,9 +11,10 @@ Test results are stored in descriptive daily TAP files with the format:
 
 Examples:
 - `installation-tests-2025-10-07.tap` - Installation tests only
+- `consolidated-scripts-tests-2025-10-07.tap` - Consolidated installation/uninstall tests
 - `core-tool-tests-2025-10-07.tap` - Core tool tests only
-- `all-tests-combined-2025-10-07.tap` - All test suites combined
 - `integration-tests-2025-10-07.tap` - Integration tests only
+- `all-tests-combined-2025-10-07.tap` - All test suites combined
 
 Each file contains the test results for the specified test suite(s) for that specific date. If the same test suite is run multiple times on the same day, the file is overwritten with the most recent results.
 

@@ -38,6 +38,9 @@ teardown() {
     assert_success
     assert_output_contains "V5 - 5 Strategies Productive Development Tool"
     assert_output_contains "Usage:"
+    assert_output_contains "Installation Modes:"
+    assert_output_contains "--global"
+    assert_output_contains "--local"
 }
 
 @test "install.sh shows version information" {
@@ -54,6 +57,28 @@ teardown() {
     # Should always succeed in showing dependency status
     assert_success
     assert_output_contains "Dependency Check"
+    assert_output_contains "Python dependencies"
+}
+
+@test "install.sh supports global installation mode" {
+    run ./install.sh --help
+    assert_success
+    assert_output_contains "--global"
+    assert_output_contains "system-wide"
+}
+
+@test "install.sh supports local installation mode" {
+    run ./install.sh --help
+    assert_success
+    assert_output_contains "--local"
+    assert_output_contains "Local installation only"
+}
+
+@test "install.sh supports dry-run mode" {
+    run ./install.sh --help
+    assert_success
+    assert_output_contains "--dry-run"
+    assert_output_contains "without doing it"
 }
 
 @test "get-v5.sh contains proper shebang and error handling" {
@@ -138,7 +163,7 @@ teardown() {
     skip_if_missing "python3" "python3 not available"
 
     # Test core modules compile
-    run python3 -m py_compile src/core/v5_system.py
+    run python3 -m py_compile src/core/v5_tool.py
     assert_success
 
     run python3 -m py_compile src/utils/messaging.py
@@ -178,4 +203,45 @@ teardown() {
     version=$(cat VERSION)
     run grep "## \[$version\]" CHANGELOG.md
     assert_success
+}
+
+@test "uninstall.sh exists and is executable" {
+    assert_file_exists "uninstall.sh"
+    [ -x "uninstall.sh" ]
+}
+
+@test "uninstall.sh shows help with --help flag" {
+    run ./uninstall.sh --help
+    assert_success
+    assert_output_contains "V5 - 5 Strategies Productive Development Tool"
+    assert_output_contains "Uninstall Script"
+    assert_output_contains "Uninstall Modes:"
+}
+
+@test "uninstall.sh supports repository-only mode" {
+    run ./uninstall.sh --help
+    assert_success
+    assert_output_contains "--repo"
+    assert_output_contains "Remove V5 from current repository"
+}
+
+@test "uninstall.sh supports machine-only mode" {
+    run ./uninstall.sh --help
+    assert_success
+    assert_output_contains "--machine"
+    assert_output_contains "Remove V5 from machine"
+}
+
+@test "uninstall.sh supports complete removal mode" {
+    run ./uninstall.sh --help
+    assert_success
+    assert_output_contains "--complete"
+    assert_output_contains "Complete removal"
+}
+
+@test "uninstall.sh supports dry-run mode" {
+    run ./uninstall.sh --help
+    assert_success
+    assert_output_contains "--dry-run"
+    assert_output_contains "Show what would be removed"
 }

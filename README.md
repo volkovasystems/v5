@@ -435,6 +435,7 @@ V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with
 
 # Run specific test suite
 ./test installation
+./test consolidated
 ./test core-tool
 
 # Run with RabbitMQ integration tests
@@ -479,6 +480,18 @@ The test suite runs in isolated Docker containers with:
 - ✅ Shell script linting (ShellCheck)
 - ✅ Python syntax validation
 - ✅ Documentation completeness
+
+#### Consolidated Scripts Tests (`test_consolidated_scripts.bats`)
+- ✅ Global installation mode (default behavior)
+- ✅ Local installation mode
+- ✅ Dry-run functionality for both install and uninstall
+- ✅ Interactive uninstall menu
+- ✅ Repository-only uninstall mode
+- ✅ Machine-only uninstall mode
+- ✅ Complete removal uninstall mode
+- ✅ Error handling and validation
+- ✅ Help system consistency
+- ✅ Flag and option validation
 
 #### Core Tool Tests (`test_core_tool.bats`)
 - ✅ Python module imports and dependencies

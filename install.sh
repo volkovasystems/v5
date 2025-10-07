@@ -246,7 +246,7 @@ if [[ "$DRY_RUN" != "true" ]]; then
             elif command_exists yum || command_exists dnf; then
                 PKG_MGR=$(command_exists dnf && echo "dnf" || echo "yum")
                 echo -e "${BLUE}   Installing RabbitMQ via $PKG_MGR...${NC}"
-                if install_with_sudo $PKG_MGR install -y rabbitmq-server; then
+                if install_with_sudo "$PKG_MGR" install -y rabbitmq-server; then
                     echo -e "${GREEN}   ✅ RabbitMQ installed successfully${NC}"
                     install_with_sudo systemctl enable rabbitmq-server
                     install_with_sudo systemctl start rabbitmq-server

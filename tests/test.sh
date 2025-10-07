@@ -53,6 +53,7 @@ OPTIONS:
 
 TEST_SUITE:
     installation        Run installation tests only
+    consolidated        Run consolidated installation/uninstall tests only
     core-tool           Run core tool tests only
     integration         Run integration tests only
     all                 Run all test suites (default)
@@ -62,9 +63,11 @@ EXAMPLES:
     $0 --integration               # Run integration tests with RabbitMQ
     $0 --build --clean             # Rebuild images and clean up after
     $0 installation                # Run only installation tests
+    $0 consolidated                # Run only consolidated script tests
     $0 --local                     # Run tests locally
     $0 --local --tap               # Run tests locally with TAP output
     $0 --local --tap-only installation  # Output only TAP for installation tests
+    $0 --local --tap consolidated       # Run consolidated tests with TAP output
     $0 --local --tap core-tool          # Run core tool tests with TAP output
     $0 --tap --verbose             # Generate TAP reports with verbose output
     $0 --watch                     # Watch for changes and rerun tests
@@ -117,7 +120,7 @@ parse_args() {
                 list_test_suites
                 exit 0
                 ;;
-            installation|core-tool|integration|all)
+            installation|consolidated|core-tool|integration|all)
                 TEST_SUITE="$1"
                 shift
                 ;;
@@ -137,6 +140,10 @@ list_test_suites() {
 
     if [ -f "$TEST_DIR/integration/test_installation.bats" ]; then
         echo -e "${GREEN}• installation${NC} - Installation script and executable tests"
+    fi
+
+    if [ -f "$TEST_DIR/integration/test_consolidated_scripts.bats" ]; then
+        echo -e "${GREEN}• consolidated${NC} - Consolidated installation and uninstall script tests"
     fi
 
     if [ -f "$TEST_DIR/unit/test_core_tool.bats" ]; then
@@ -162,6 +169,9 @@ generate_tap_filename() {
     case "$test_suite" in
         "installation")
             filename_base="installation-tests"
+            ;;
+        "consolidated")
+            filename_base="consolidated-scripts-tests"
             ;;
         "core-tool")
             filename_base="core-tool-tests"
@@ -470,6 +480,46 @@ run_tests_local() {
             fi
         else
             bats "$TEST_DIR/integration/test_installation.bats" || exit_code=$?
+            test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        fi
+    fi
+
+    if [ "${TEST_SUITE:-all}" == "all" ] || \
+            [ "${TEST_SUITE:-all}" == "consolidated" ]; then
+        
+        if [ "$TAP_ONLY" != true ]; then
+            echo -e "\n${CYAN}Running consolidated script tests...${NC}"
+        fi
+        
+        local test_start_time
+        local test_end_time
+        test_start_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        
+        if [ "$TAP_OUTPUT" = true ]; then
+            # Capture BATS output for TAP conversion
+            local bats_output
+            bats_output=$(bats "$TEST_DIR/integration/test_consolidated_scripts.bats" 2>&1)
+            local bats_exit_code=$?
+            test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+            
+            if [ "$TAP_ONLY" = true ]; then
+                # For TAP-only mode, we'll collect all results and output at the end
+                add_to_daily_tap "consolidated" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+            else
+                # Add to combined TAP file
+                add_to_daily_tap "consolidated" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+                
+                # Also display the output if verbose
+                if [ "$VERBOSE" = true ]; then
+                    echo "$bats_output"
+                fi
+            fi
+            
+            if [ $bats_exit_code -ne 0 ]; then
+                exit_code=$bats_exit_code
+            fi
+        else
+            bats "$TEST_DIR/integration/test_consolidated_scripts.bats" || exit_code=$?
             test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
         fi
     fi
