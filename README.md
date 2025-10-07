@@ -434,8 +434,8 @@ V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with
 ./test
 
 # Run specific test suite
-./test installation
-./test consolidated
+./test install
+./test uninstall
 ./test core-tool
 
 # Run with RabbitMQ integration tests
@@ -453,7 +453,8 @@ tests/
 ├── unit/                    # Unit tests for individual components
 │   └── test_core_tool.bats     # Core Python module tests
 ├── integration/             # Integration and system tests
-│   └── test_installation.bats  # Installation script tests
+│   ├── test_install.bats       # Installation functionality tests
+│   └── test_uninstall.bats     # Uninstallation functionality tests
 ├── fixtures/                # Test data and sample files
 ├── Dockerfile              # Isolated test environment
 └── test_helper.bash        # Common test utilities
@@ -471,27 +472,29 @@ The test suite runs in isolated Docker containers with:
 
 ### Test Categories
 
-#### Installation Tests (`test_installation.bats`)
+#### Installation Tests (`test_install.bats`)
 - ✅ Script executability and permissions
 - ✅ VERSION file format validation
 - ✅ Help and version flag functionality
+- ✅ Global installation mode (default behavior)
+- ✅ Local installation mode
+- ✅ Dry-run functionality
 - ✅ Dependency checking
 - ✅ Cross-platform compatibility
 - ✅ Shell script linting (ShellCheck)
 - ✅ Python syntax validation
 - ✅ Documentation completeness
 
-#### Consolidated Scripts Tests (`test_consolidated_scripts.bats`)
-- ✅ Global installation mode (default behavior)
-- ✅ Local installation mode
-- ✅ Dry-run functionality for both install and uninstall
-- ✅ Interactive uninstall menu
+#### Uninstallation Tests (`test_uninstall.bats`)
 - ✅ Repository-only uninstall mode
 - ✅ Machine-only uninstall mode
 - ✅ Complete removal uninstall mode
+- ✅ Interactive uninstall menu
+- ✅ Dry-run functionality
 - ✅ Error handling and validation
 - ✅ Help system consistency
 - ✅ Flag and option validation
+- ✅ Non-interactive environment detection
 
 #### Core Tool Tests (`test_core_tool.bats`)
 - ✅ Python module imports and dependencies
@@ -567,14 +570,14 @@ sudo git clone https://github.com/bats-core/bats-assert.git /usr/lib/bats/bats-a
 ./test --local --tap-only
 
 # Run specific test suite with TAP output
-./test --local --tap installation
+./test --local --tap install
 ./test --local --tap-only core-tool
 
 # Run specific test file directly with BATS
 bats tests/unit/test_core_tool.bats
 
 # Run with TAP output using BATS directly
-bats --tap tests/integration/test_installation.bats
+bats --tap tests/integration/test_install.bats
 ```
 
 ### Docker Compose Services

@@ -85,8 +85,11 @@ run_test_suite() {
 mkdir -p /app/test-results
 rm -f /app/test-results/*.tap
 failures=0
-if [ -f "tests/integration/test_installation.bats" ]; then
-    run_test_suite "installation" "tests/integration/test_installation.bats" || ((failures++))
+if [ -f "tests/integration/test_install.bats" ]; then
+    run_test_suite "install" "tests/integration/test_install.bats" || ((failures++))
+fi
+if [ -f "tests/integration/test_uninstall.bats" ]; then
+    run_test_suite "uninstall" "tests/integration/test_uninstall.bats" || ((failures++))
 fi
 if [ -f "tests/unit/test_core_system.bats" ]; then
     run_test_suite "core-system" "tests/unit/test_core_system.bats" || ((failures++))
@@ -94,7 +97,8 @@ fi
 for test_file in tests/unit/*.bats tests/integration/*.bats; do
     if [ -f "$test_file" ]; then
         case "$test_file" in
-            *"test_installation.bats"*) continue ;;
+            *"test_install.bats"*) continue ;;
+            *"test_uninstall.bats"*) continue ;;
             *"test_core_system.bats"*) continue ;;
             *) 
                 suite_name=$(basename "$test_file" .bats)

@@ -5,6 +5,52 @@ All notable changes to the V5 - 5 Strategies Productive Development Tool will be
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-08
+
+**Major Enhancement**: Test Suite Reorganization
+
+### Changed
+- **Test Structure Reorganization**: Separated installation and uninstallation tests into dedicated files
+- **Clear Test Separation**: `test_install.bats` (33 tests) and `test_uninstall.bats` (26 tests)
+- **Updated Test Commands**: New command structure `./test install`, `./test uninstall`, `./test core-tool`
+- **Improved Test Maintainability**: Each test file has focused responsibility and clear scope
+
+### Enhanced
+- **TAP Output Alignment**: Test result files now match new structure (`install-tests-*.tap`, `uninstall-tests-*.tap`)
+- **Documentation Updates**: All documentation updated to reflect new test organization
+- **Test Runner Improvements**: Updated test runner scripts to support new file structure
+- **Docker Integration**: Updated Docker test environment for new test files
+
+### Removed
+- **test_consolidated_scripts.bats**: Functionality split into dedicated install/uninstall test files
+- **test_installation.bats**: Consolidated into comprehensive `test_install.bats`
+- **Outdated TAP files**: Cleaned up old test result files for consistency
+
+### Test Command Changes
+
+**New test commands:**
+```bash
+# Run installation tests (33 tests)
+./test install
+
+# Run uninstallation tests (26 tests) 
+./test uninstall
+
+# Run core tool tests (13 tests)
+./test core-tool
+
+# Run all tests (72 tests total)
+./test all
+```
+
+**TAP output files:**
+- `install-tests-YYYY-MM-DD.tap` - Installation functionality tests
+- `uninstall-tests-YYYY-MM-DD.tap` - Uninstallation functionality tests
+- `core-tool-tests-YYYY-MM-DD.tap` - Core Python module tests
+- `all-tests-combined-YYYY-MM-DD.tap` - Combined results (72 tests)
+
+---
+
 ## [1.2.0] - 2025-10-08
 
 **Major Enhancement**: Consolidated Installation & Uninstall Scripts

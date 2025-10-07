@@ -1,0 +1,103 @@
+TAP version 13
+# V5 Test Suite Results
+# Date: 2025-10-08
+# Generated: 2025-10-08 01:10:33 PST
+#
+1..72
+#
+# Test Suite: install
+# Started: 2025-10-08 01:10:33 PST
+# Completed: 2025-10-08 01:10:36 PST
+# Status: PASSED
+#
+ok 1 install.sh exists and is executable
+ok 2 get-v5.sh exists and is executable
+ok 3 v5 main executable exists and is executable
+ok 4 VERSION file exists and contains valid version
+ok 5 install.sh shows help with --help flag
+ok 6 install.sh shows version information
+ok 7 install.sh shows proper version information
+ok 8 install.sh defaults to global mode
+ok 9 install.sh global mode flag works
+ok 10 install.sh supports global installation mode
+ok 11 install.sh local mode flag works
+ok 12 install.sh supports local installation mode
+ok 13 install.sh dry-run shows preview without changes
+ok 14 install.sh supports dry-run mode
+ok 15 install.sh check-deps validates system requirements
+ok 16 install.sh performs dependency checks
+ok 17 install.sh rejects invalid flags
+ok 18 install.sh handles missing v5_tool.py gracefully
+ok 19 install script handles permission errors gracefully
+ok 20 install.sh creates .warp directory structure
+ok 21 v5 executable shows help
+ok 22 v5 executable shows version
+ok 23 v5 executable handles invalid arguments gracefully
+ok 24 get-v5.sh contains proper shebang and error handling
+ok 25 requirements.txt contains valid Python packages
+ok 26 README.md exists and is not empty
+ok 27 LICENSE file exists
+ok 28 CHANGELOG.md exists and follows format
+ok 29 shell scripts pass shellcheck if available
+ok 30 Python modules compile without syntax errors
+ok 31 install options are properly documented
+ok 32 install script handles missing directories gracefully
+ok 33 install script provides consistent help format
+#
+# Test Suite: uninstall
+# Started: 2025-10-08 01:10:36 PST
+# Completed: 2025-10-08 01:10:38 PST
+# Status: PASSED
+#
+ok 34 uninstall.sh exists and is executable
+ok 35 uninstall.sh shows help with --help flag
+ok 36 uninstall.sh supports repository-only mode
+ok 37 uninstall.sh repo mode removes repository files only
+ok 38 uninstall.sh supports machine-only mode
+ok 39 uninstall.sh machine mode removes global command only
+ok 40 uninstall.sh supports complete removal mode
+ok 41 uninstall.sh complete mode removes everything
+ok 42 uninstall.sh supports dry-run mode
+ok 43 uninstall.sh dry-run shows what would be removed
+ok 44 uninstall.sh detects non-interactive environment correctly
+ok 45 uninstall.sh rejects multiple mode flags
+ok 46 uninstall.sh rejects invalid flags
+ok 47 uninstall script handles permission errors gracefully
+ok 48 uninstall script handles missing directories gracefully
+ok 49 uninstall.sh handles missing .warp directory gracefully
+ok 50 uninstall.sh handles missing features directory gracefully
+ok 51 uninstall script provides consistent help format
+ok 52 uninstall script mentions reinstallation guidance
+ok 53 uninstall options are properly documented
+ok 54 uninstall.sh passes shellcheck if available
+ok 55 uninstall.sh repo mode identifies correct files for removal
+ok 56 uninstall.sh machine mode shows correct paths
+ok 57 uninstall.sh complete mode combines repo and machine operations
+ok 58 uninstall.sh dry-run never actually removes files
+ok 59 uninstall.sh provides clear dry-run vs actual run distinction
+#
+# Test Suite: core-tool
+# Started: 2025-10-08 01:10:38 PST
+# Completed: 2025-10-08 01:10:39 PST
+# Status: PASSED
+#
+ok 60 Python modules can be imported successfully
+ok 61 messaging module imports without pika dependency
+ok 62 goal parser handles valid YAML goal files
+ok 63 goal parser validates request alignment
+ok 64 V5Tool initializes with valid repository
+ok 65 window implementations exist and are valid Python
+ok 66 goal YAML file structure is valid
+ok 67 .warp directory structure is created correctly
+ok 68 messaging configuration can be created
+ok 69 version information is accessible from Python modules
+ok 70 error handling works without crashing
+ok 71 goal summary generation works correctly
+ok 72 Python path and imports work in isolated environment
+#
+# SUMMARY
+# Total Tests: 72
+# Passed: 72
+# Failed: 0
+# Overall Status: PASSED
+# Completed: 2025-10-08 01:10:33 PST

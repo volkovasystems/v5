@@ -10,11 +10,11 @@ Test results are stored in descriptive daily TAP files with the format:
 ```
 
 Examples:
-- `installation-tests-2025-10-07.tap` - Installation tests only
-- `consolidated-scripts-tests-2025-10-07.tap` - Consolidated installation/uninstall tests
-- `core-tool-tests-2025-10-07.tap` - Core tool tests only
-- `integration-tests-2025-10-07.tap` - Integration tests only
-- `all-tests-combined-2025-10-07.tap` - All test suites combined
+- `install-tests-2025-10-08.tap` - Installation functionality tests (33 tests)
+- `uninstall-tests-2025-10-08.tap` - Uninstallation functionality tests (26 tests)
+- `core-tool-tests-2025-10-08.tap` - Core tool tests (13 tests)
+- `integration-tests-2025-10-08.tap` - Integration tests with RabbitMQ
+- `all-tests-combined-2025-10-08.tap` - All test suites combined (72 tests)
 
 Each file contains the test results for the specified test suite(s) for that specific date. If the same test suite is run multiple times on the same day, the file is overwritten with the most recent results.
 
@@ -23,7 +23,8 @@ Each file contains the test results for the specified test suite(s) for that spe
 Each file contains:
 - TAP version declaration
 - Test suite metadata with timestamps
-- All test results from installation and core-tool suites
+- Test results from specific suites (install, uninstall, core-tool)
+- Sequential test numbering across combined suites
 - Summary information and failure details
 
 ## Usage
@@ -61,7 +62,7 @@ V5 includes intelligent timestamp management to keep the repository clean:
 ### User Experience
 ```bash
 # Running the same tests multiple times
-./test --local --tap installation
+./test --local --tap install
 ⏰ Only timestamps changed, reverted to preserve original timestamps
 
 # git status remains clean - no unnecessary TAP file modifications

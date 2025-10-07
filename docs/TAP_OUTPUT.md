@@ -17,14 +17,16 @@ Generate daily, combined TAP output files alongside regular test output:
 ./test --local --tap
 
 # Generate daily TAP file for specific test suite
-./test --local --tap installation
+./test --local --tap install
+./test --local --tap uninstall
 ./test --local --tap core-tool
 ```
 
 Descriptive TAP files are saved in the `test-results/` directory:
-- `test-results/all-tests-combined-2025-10-07.tap` - All test suites combined
-- `test-results/installation-tests-2025-10-07.tap` - Installation tests only
-- `test-results/core-tool-tests-2025-10-07.tap` - Core tool tests only
+- `test-results/all-tests-combined-2025-10-08.tap` - All test suites combined (72 tests)
+- `test-results/install-tests-2025-10-08.tap` - Installation functionality tests (33 tests)
+- `test-results/uninstall-tests-2025-10-08.tap` - Uninstallation functionality tests (26 tests)
+- `test-results/core-tool-tests-2025-10-08.tap` - Core tool tests (13 tests)
 - Each file contains results from the specified test suite(s) with timing information
 - Running the same test suite multiple times on the same day overwrites that specific file
 
@@ -37,7 +39,8 @@ Output only TAP format to stdout (useful for CI integration):
 ./test --local --tap-only
 
 # Output only TAP format for specific test suite
-./test --local --tap-only installation
+./test --local --tap-only install
+./test --local --tap-only uninstall
 ./test --local --tap-only core-tool
 ```
 
@@ -53,15 +56,24 @@ TAP version 13
 #
 1..31
 #
-# Test Suite: installation
-# Started: 2025-10-07 13:04:33 PST
-# Completed: 2025-10-07 13:04:35 PST
+# Test Suite: install
+# Started: 2025-10-08 01:09:01 PST
+# Completed: 2025-10-08 01:09:04 PST
 # Status: PASSED
 #
-1..18
 ok 1 install.sh exists and is executable
 ok 2 get-v5.sh exists and is executable
-# ... more installation tests
+ok 3 v5 main executable exists and is executable
+# ... more installation tests (33 total)
+#
+# Test Suite: uninstall
+# Started: 2025-10-08 01:10:07 PST
+# Completed: 2025-10-08 01:10:09 PST
+# Status: PASSED
+#
+ok 34 uninstall.sh exists and is executable
+ok 35 uninstall.sh shows help with --help flag
+# ... more uninstallation tests (26 total)
 #
 # Test Suite: core-tool
 # Started: 2025-10-07 13:04:35 PST
@@ -73,11 +85,11 @@ ok 1 Python modules can be imported successfully
 # ... more core-tool tests
 #
 # SUMMARY
-# Total Tests: 31
-# Passed: 31
+# Total Tests: 72
+# Passed: 72
 # Failed: 0
 # Overall Status: PASSED
-# Completed: 2025-10-07 13:04:37 PST
+# Completed: 2025-10-08 01:10:39 PST
 ```
 
 ## CI Integration
@@ -148,9 +160,10 @@ test:
 
 - Descriptive TAP files: `test-results/{suite-name}-YYYY-MM-DD.tap`
 - Examples:
-  - `test-results/all-tests-combined-2025-10-07.tap` - All test suites combined
-  - `test-results/installation-tests-2025-10-07.tap` - Installation tests only
-  - `test-results/core-tool-tests-2025-10-07.tap` - Core tool tests only
+  - `test-results/all-tests-combined-2025-10-08.tap` - All test suites combined (72 tests)
+  - `test-results/install-tests-2025-10-08.tap` - Installation functionality tests (33 tests)
+  - `test-results/uninstall-tests-2025-10-08.tap` - Uninstallation functionality tests (26 tests)
+  - `test-results/core-tool-tests-2025-10-08.tap` - Core tool tests (13 tests)
 - Files include comprehensive metadata, timing, and summary information
 
 ## Automatic Timestamp Preservation
@@ -170,7 +183,7 @@ When tests complete, the system automatically analyzes TAP files for changes:
 
 ```bash
 # Run tests multiple times - only timestamps change
-./test --local --tap installation
+./test --local --tap install
 ⏰ Only timestamps changed, reverted to preserve original timestamps
 
 # Add a new test - meaningful changes are preserved

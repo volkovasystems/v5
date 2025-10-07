@@ -1,0 +1,52 @@
+TAP version 13
+# V5 Test Suite Results
+# Date: 2025-10-08
+# Generated: 2025-10-08 01:09:01 PST
+#
+1..33
+#
+# Test Suite: install
+# Started: 2025-10-08 01:09:01 PST
+# Completed: 2025-10-08 01:09:04 PST
+# Status: PASSED
+#
+ok 1 install.sh exists and is executable
+ok 2 get-v5.sh exists and is executable
+ok 3 v5 main executable exists and is executable
+ok 4 VERSION file exists and contains valid version
+ok 5 install.sh shows help with --help flag
+ok 6 install.sh shows version information
+ok 7 install.sh shows proper version information
+ok 8 install.sh defaults to global mode
+ok 9 install.sh global mode flag works
+ok 10 install.sh supports global installation mode
+ok 11 install.sh local mode flag works
+ok 12 install.sh supports local installation mode
+ok 13 install.sh dry-run shows preview without changes
+ok 14 install.sh supports dry-run mode
+ok 15 install.sh check-deps validates system requirements
+ok 16 install.sh performs dependency checks
+ok 17 install.sh rejects invalid flags
+ok 18 install.sh handles missing v5_tool.py gracefully
+ok 19 install script handles permission errors gracefully
+ok 20 install.sh creates .warp directory structure
+ok 21 v5 executable shows help
+ok 22 v5 executable shows version
+ok 23 v5 executable handles invalid arguments gracefully
+ok 24 get-v5.sh contains proper shebang and error handling
+ok 25 requirements.txt contains valid Python packages
+ok 26 README.md exists and is not empty
+ok 27 LICENSE file exists
+ok 28 CHANGELOG.md exists and follows format
+ok 29 shell scripts pass shellcheck if available
+ok 30 Python modules compile without syntax errors
+ok 31 install options are properly documented
+ok 32 install script handles missing directories gracefully
+ok 33 install script provides consistent help format
+#
+# SUMMARY
+# Total Tests: 33
+# Passed: 33
+# Failed: 0
+# Overall Status: PASSED
+# Completed: 2025-10-08 01:09:01 PST

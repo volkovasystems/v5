@@ -103,7 +103,7 @@ if [[ -z "$UNINSTALL_MODE" ]]; then
     echo "4) Cancel           - Exit without removing anything"
     echo ""
     while true; do
-        read -p "Enter your choice (1-4): " choice || {
+        read -r -p "Enter your choice (1-4): " choice || {
             echo -e "\n${RED}❌ Error: Could not read input (non-interactive environment?)${NC}"
             echo -e "${BLUE}ℹ️  Use command line flags: --repo, --machine, or --complete${NC}"
             exit 1
@@ -257,7 +257,7 @@ uninstall_machine() {
                 echo -e "${YELLOW}   [DRY RUN] Would ask to remove installation directory${NC}"
             else
                 echo ""
-                read -p "Remove V5 installation directory $install_dir? (y/N): " confirm || {
+                read -r -p "Remove V5 installation directory $install_dir? (y/N): " confirm || {
                     echo -e "\n${YELLOW}   ⚠️  Could not read confirmation, skipping directory removal${NC}"
                     echo -e "${BLUE}   ℹ️  Keeping installation directory: $install_dir${NC}"
                     continue

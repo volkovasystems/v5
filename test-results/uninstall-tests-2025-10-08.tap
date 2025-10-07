@@ -1,0 +1,45 @@
+TAP version 13
+# V5 Test Suite Results
+# Date: 2025-10-08
+# Generated: 2025-10-08 01:10:07 PST
+#
+1..26
+#
+# Test Suite: uninstall
+# Started: 2025-10-08 01:10:07 PST
+# Completed: 2025-10-08 01:10:09 PST
+# Status: PASSED
+#
+ok 1 uninstall.sh exists and is executable
+ok 2 uninstall.sh shows help with --help flag
+ok 3 uninstall.sh supports repository-only mode
+ok 4 uninstall.sh repo mode removes repository files only
+ok 5 uninstall.sh supports machine-only mode
+ok 6 uninstall.sh machine mode removes global command only
+ok 7 uninstall.sh supports complete removal mode
+ok 8 uninstall.sh complete mode removes everything
+ok 9 uninstall.sh supports dry-run mode
+ok 10 uninstall.sh dry-run shows what would be removed
+ok 11 uninstall.sh detects non-interactive environment correctly
+ok 12 uninstall.sh rejects multiple mode flags
+ok 13 uninstall.sh rejects invalid flags
+ok 14 uninstall script handles permission errors gracefully
+ok 15 uninstall script handles missing directories gracefully
+ok 16 uninstall.sh handles missing .warp directory gracefully
+ok 17 uninstall.sh handles missing features directory gracefully
+ok 18 uninstall script provides consistent help format
+ok 19 uninstall script mentions reinstallation guidance
+ok 20 uninstall options are properly documented
+ok 21 uninstall.sh passes shellcheck if available
+ok 22 uninstall.sh repo mode identifies correct files for removal
+ok 23 uninstall.sh machine mode shows correct paths
+ok 24 uninstall.sh complete mode combines repo and machine operations
+ok 25 uninstall.sh dry-run never actually removes files
+ok 26 uninstall.sh provides clear dry-run vs actual run distinction
+#
+# SUMMARY
+# Total Tests: 26
+# Passed: 26
+# Failed: 0
+# Overall Status: PASSED
+# Completed: 2025-10-08 01:10:07 PST
