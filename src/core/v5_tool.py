@@ -443,7 +443,7 @@ version: "1.0"
         pid_file.unlink()
         self.logger.info("V5 tool stopped")
 
-def find_git_repository(start_path: Path = None) -> Path:
+def find_git_repository(start_path: Optional[Path] = None) -> Path:
     """Find the root of a git repository starting from the given path.
     
     Args:
