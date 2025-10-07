@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "v5-development-tool"
 version = "1.0.0"
-description = "V5 Development Automation Tool"
+description = "V5 - 5 Strategies Productive Development Tool"
 authors = [
     {name = "V5 Development Team"}
 ]
