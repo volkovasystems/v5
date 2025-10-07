@@ -5,7 +5,7 @@ All notable changes to the V5 - 5 Strategies Productive Development Tool will be
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-10-07
+## [1.0.0] - 2025-10-07
 
 **Initial Release**: Complete V5 - 5 Strategies Productive Development Tool implementation.
 
