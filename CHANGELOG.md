@@ -5,6 +5,63 @@ All notable changes to the V5 - 5 Strategies Productive Development Tool will be
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-08
+
+**Major Enhancement**: Consolidated Installation & Uninstall Scripts
+
+### Added
+- **Unified Installation Script**: Single `install.sh` with global installation as default
+- **Comprehensive Uninstall Script**: `uninstall.sh` with repository, machine, and complete removal options
+- **Interactive Uninstall Menu**: User-friendly selection when no flags provided
+- **Dry Run Support**: Preview changes with `--dry-run` flag for both install and uninstall
+- **Flexible Installation Modes**: `--global` (default) and `--local` options
+
+### Enhanced
+- **Concise Script Management**: Reduced from 3 separate scripts to 2 unified scripts
+- **Better User Experience**: Clear distinction between repository and machine-level operations
+- **Improved Documentation**: Comprehensive uninstallation section in README
+- **Smart Dependency Detection**: Enhanced Python and system package checking
+
+### Installation Changes
+
+**New unified install.sh:**
+```bash
+# Global installation (default)
+./install.sh
+
+# Local installation only
+./install.sh --local
+
+# Check dependencies
+./install.sh --check-deps
+
+# Preview installation
+./install.sh --dry-run
+```
+
+**New unified uninstall.sh:**
+```bash
+# Interactive menu
+./uninstall.sh
+
+# Specific uninstall modes
+./uninstall.sh --repo      # Repository only
+./uninstall.sh --machine   # Machine only
+./uninstall.sh --complete  # Both
+```
+
+### Removed
+- **install-global.sh**: Functionality merged into main install.sh
+- **uninstall-global.sh**: Replaced with comprehensive uninstall.sh
+
+### Technical Improvements
+- Enhanced error handling and user feedback
+- Consistent color coding and output formatting
+- Better cross-platform compatibility
+- Improved sudo privilege management
+
+---
+
 ## [1.1.0] - 2025-10-08
 
 **Major Enhancement**: Global Installation and Enhanced Repository Detection

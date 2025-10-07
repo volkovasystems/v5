@@ -41,32 +41,36 @@ curl -fsSL https://raw.githubusercontent.com/volkovasystems/v5/main/get-v5.sh | 
 # If you prefer to clone first
 git clone https://github.com/volkovasystems/v5
 cd v5
+
+# Default: Global installation (recommended)
 ./install.sh
 
-# Optional: Install globally to use 'v5' from anywhere
-./install-global.sh
+# Alternative: Local installation only
+./install.sh --local
 ```
 
 ### What gets installed:
 - Python3 and pip (if missing)
-- Virtual environment setup
+- Virtual environment setup  
 - Python dependencies: `pika`, `psutil`, `watchdog`, `PyYAML`
 - RabbitMQ server (Linux/macOS only)
+- Global `v5` command (by default)
 - Cross-platform terminal compatibility
 
 ### Installation Options
 
-#### Remote Install Options:
-- **Default**: Installs to `~/v5-tool/`
-- **System**: `--system` flag installs to `~/.local/share/v5` and adds to PATH
-- **Custom**: `--dir=PATH` installs to specified directory
+#### Local Install Options:
+- **Global** (default): `./install.sh` - Creates system-wide `v5` command
+- **Local only**: `./install.sh --local` - Local installation without global command
+- **Check dependencies**: `./install.sh --check-deps` - Verify system requirements
+- **Dry run**: `./install.sh --dry-run` - Preview installation without changes
 
-#### How remote installation works:
-1. **Smart Download**: Uses git clone if available, falls back to curl
-2. **Auto Dependencies**: Installs Python packages in virtual environment
+#### How installation works:
+1. **Dependency Check**: Verifies Python3, pip, and system packages
+2. **Virtual Environment**: Creates isolated Python environment for dependencies
 3. **RabbitMQ Setup**: Automatically installs and configures (Linux/macOS/WSL)
-4. **Cross-Platform**: Works on Linux, macOS, WSL, and Windows
-5. **PATH Management**: System install adds `v5` command globally
+4. **Global Command**: Creates `/usr/local/bin/v5` wrapper (global mode)
+5. **Cross-Platform**: Works on Linux, macOS, WSL, and Windows
 
 ### Development Setup
 For contributing or development work:
@@ -127,6 +131,55 @@ brew install curl git
 # Try installation with different directory
 curl -fsSL https://raw.githubusercontent.com/volkovasystems/v5/main/get-v5.sh | bash -s -- --dir=~/my-v5
 ```
+
+## 🗑️ Uninstallation
+
+V5 provides flexible uninstall options to match your needs:
+
+### Uninstall Options
+```bash
+# Repository only - Remove V5 from current repository
+./uninstall.sh --repo
+
+# Machine only - Remove global command, keep repository data
+./uninstall.sh --machine
+
+# Complete removal - Remove everything
+./uninstall.sh --complete
+
+# Preview what would be removed
+./uninstall.sh --dry-run --repo
+```
+
+### Interactive Mode
+```bash
+# Run without flags for interactive menu
+./uninstall.sh
+
+# Choose from:
+# 1) Repository only  - Remove .warp/ and features/ directories
+# 2) Machine only     - Remove global 'v5' command
+# 3) Complete removal - Both repository and machine
+# 4) Cancel           - Exit without changes
+```
+
+### What Gets Removed
+
+**Repository uninstall (`--repo`):**
+- Removes `.warp/` directory (configurations, logs, protocols)
+- Removes `features/` directory (feature documentation)
+- Removes any V5-specific files in the repository
+- Preserves global `v5` command for other repositories
+
+**Machine uninstall (`--machine`):**
+- Removes global `/usr/local/bin/v5` command
+- Optionally removes V5 installation directories
+- Preserves all repository `.warp/` and `features/` data
+- You can still run V5 locally if source files remain
+
+**Complete uninstall (`--complete`):**
+- Combines both repository and machine removal
+- Complete clean slate - removes all V5 traces
 
 ## 🚀 Quick Start
 
