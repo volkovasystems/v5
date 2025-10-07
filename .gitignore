@@ -39,8 +39,10 @@ venv.bak/
 # PyCharm
 .idea/
 
-# VSCode
-.vscode/
+# VSCode - keep settings but ignore some files
+.vscode/*
+!.vscode/settings.json
+*.code-workspace
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -92,6 +94,16 @@ features/
 *.lock
 pids/
 
+# Development and debug files
+debug_*.py
+test_*.py
+!tests/
+
+# Node.js (for tools like pyright)
+node_modules/
+package-lock.json
+yarn.lock
+
 # Temporary files
 *.tmp
 *.temp
@@ -101,3 +113,7 @@ Thumbs.db
 
 # RabbitMQ
 rabbitmq.config
+
+# Generated documentation
+docs/_build/
+site/
