@@ -69,16 +69,18 @@ teardown() {
 
 # Uninstall Script Tests
 
-@test "uninstall.sh provides interactive menu by default" {
-    # Test with immediate cancel (option 4)
+@test "uninstall.sh detects non-interactive environment correctly" {
+    # Test that the script properly detects non-interactive environments
+    # and provides helpful guidance
     run bash -c 'echo "4" | ./uninstall.sh'
-    assert_success
-    assert_output_contains "What would you like to uninstall?"
-    assert_output_contains "1) Repository only"
-    assert_output_contains "2) Machine only"
-    assert_output_contains "3) Complete removal"
-    assert_output_contains "4) Cancel"
-    assert_output_contains "Cancelled by user"
+    # The script should now detect this as non-interactive and show the error
+    assert_failure
+    assert_output_contains "No uninstall mode specified"
+    assert_output_contains "non-interactive environment"
+    assert_output_contains "--repo"
+    assert_output_contains "--machine"
+    assert_output_contains "--complete"
+    assert_output_contains "Example:"
 }
 
 @test "uninstall.sh repo mode removes repository files only" {

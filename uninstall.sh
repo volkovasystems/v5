@@ -78,6 +78,19 @@ done
 
 # If no mode specified, ask user
 if [[ -z "$UNINSTALL_MODE" ]]; then
+    # Check if we're in a non-interactive environment (no TTY for both input and output)
+    if [[ ! -t 0 ]] && [[ ! -t 1 ]]; then
+        echo -e "${RED}❌ Error: No uninstall mode specified and running in non-interactive environment${NC}"
+        echo ""
+        echo "Please specify an uninstall mode:"
+        echo "  --repo          Remove V5 from current repository only"
+        echo "  --machine       Remove V5 from machine only"
+        echo "  --complete      Complete removal (both repository and machine)"
+        echo ""
+        echo "Example: $0 --repo"
+        exit 1
+    fi
+    
     echo "V5 - 5 Strategies Productive Development Tool - Uninstall Script"
     echo "==============================================================="
     echo ""
@@ -89,7 +102,11 @@ if [[ -z "$UNINSTALL_MODE" ]]; then
     echo "4) Cancel           - Exit without removing anything"
     echo ""
     while true; do
-        read -p "Enter your choice (1-4): " choice
+        read -p "Enter your choice (1-4): " choice || {
+            echo -e "\n${RED}❌ Error: Could not read input (non-interactive environment?)${NC}"
+            echo -e "${BLUE}ℹ️  Use command line flags: --repo, --machine, or --complete${NC}"
+            exit 1
+        }
         case $choice in
             1)
                 UNINSTALL_MODE="repo"
