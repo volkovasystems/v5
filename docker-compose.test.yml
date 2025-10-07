@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # Main V5 testing service
+  v5-test:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    container_name: v5-test-runner
+    volumes:
+      # Mount V5 source code
+      - ./:/app/v5:ro
+      # Mount test results for external access
+      - v5-test-results:/app/test-results
+    environment:
+      - START_RABBITMQ=false
+      - PYTHONPATH=/app/v5/src
+    networks:
+      - v5-test-network
+    depends_on:
+      - rabbitmq
+    command: run-v5-tests
+
+  # V5 testing with RabbitMQ integration
+  v5-test-integration:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    container_name: v5-test-integration
+    volumes:
+      - ./:/app/v5:ro
+      - v5-test-results:/app/test-results
+    environment:
+      - START_RABBITMQ=true
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app/v5/src
+    networks:
+      - v5-test-network
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: run-v5-tests
+
+  # RabbitMQ service for integration testing
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: v5-test-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=test_user
+      - RABBITMQ_DEFAULT_PASS=test_pass
+      - RABBITMQ_DEFAULT_VHOST=/
+    ports:
+      - "15672:15672"  # Management UI
+      - "5672:5672"    # AMQP port
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - v5-test-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Test result viewer (optional)
+  test-viewer:
+    image: nginx:alpine
+    container_name: v5-test-viewer
+    ports:
+      - "8080:80"
+    volumes:
+      - v5-test-results:/usr/share/nginx/html/results:ro
+      - ./tests/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - v5-test-network
+    depends_on:
+      - v5-test
+
+volumes:
+  v5-test-results:
+    driver: local
+  rabbitmq-data:
+    driver: local
+
+networks:
+  v5-test-network:
+    driver: bridge

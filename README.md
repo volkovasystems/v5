@@ -321,6 +321,281 @@ channel.basic_consume(queue='ci_trigger', on_message_callback=trigger_build)
 channel.start_consuming()
 ```
 
+## 🧪 Testing
+
+V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with TAP-compliant output, running in isolated Docker containers for consistent testing across different environments.
+
+### Quick Start
+
+```bash
+# Run all tests in Docker (recommended)
+./test.sh
+
+# Run specific test suite
+./test.sh installation
+./test.sh core-system
+
+# Run with RabbitMQ integration tests
+./test.sh --integration
+
+# Run tests locally (requires BATS)
+./test.sh --local
+```
+
+### Test Architecture
+
+#### Test Structure
+```
+tests/
+├── unit/                    # Unit tests for individual components
+│   └── test_core_system.bats   # Core Python module tests
+├── integration/             # Integration and system tests  
+│   └── test_installation.bats  # Installation script tests
+├── fixtures/                # Test data and sample files
+├── Dockerfile              # Isolated test environment
+└── test_helper.bash        # Common test utilities
+```
+
+#### Docker Test Environment
+
+The test suite runs in isolated Docker containers with:
+- **Ubuntu 22.04** base with all dependencies pre-installed
+- **BATS** testing framework with TAP output
+- **Python 3.10** with virtual environment
+- **RabbitMQ** for integration testing
+- **ShellCheck** for shell script linting
+- **Isolated file system** to prevent test pollution
+
+### Test Categories
+
+#### Installation Tests (`test_installation.bats`)
+- ✅ Script executability and permissions
+- ✅ VERSION file format validation
+- ✅ Help and version flag functionality
+- ✅ Dependency checking
+- ✅ Cross-platform compatibility
+- ✅ Shell script linting (ShellCheck)
+- ✅ Python syntax validation
+- ✅ Documentation completeness
+
+#### Core System Tests (`test_core_system.bats`)
+- ✅ Python module imports and dependencies
+- ✅ Goal parsing and YAML validation
+- ✅ Request alignment checking
+- ✅ V5System initialization
+- ✅ Window implementations
+- ✅ Messaging configuration
+- ✅ Error handling without crashes
+- ✅ Version information accessibility
+
+### TAP Compliance
+
+All tests generate **TAP (Test Anything Protocol)** compliant output:
+
+```tap
+1..25
+ok 1 install.sh exists and is executable
+ok 2 get-v5.sh exists and is executable
+ok 3 v5 main executable exists and is executable
+ok 4 VERSION file exists and contains valid version
+ok 5 install.sh shows help with --help flag
+# ... more tests
+```
+
+### Running Tests
+
+#### Docker-Based Testing (Recommended)
+
+```bash
+# Build and run all tests
+./test.sh --build
+
+# Run with verbose output
+./test.sh --verbose
+
+# Run integration tests with RabbitMQ
+./test.sh --integration
+
+# Clean up after tests
+./test.sh --clean
+
+# Watch mode - rerun tests on file changes
+./test.sh --watch
+```
+
+#### Local Testing
+
+**Prerequisites:**
+```bash
+# Install BATS
+git clone https://github.com/bats-core/bats-core.git
+cd bats-core
+sudo ./install.sh /usr/local
+
+# Install helpers
+sudo git clone https://github.com/bats-core/bats-support.git /usr/lib/bats/bats-support
+sudo git clone https://github.com/bats-core/bats-assert.git /usr/lib/bats/bats-assert
+```
+
+**Run tests:**
+```bash
+# Run locally without Docker
+./test.sh --local
+
+# Run specific test file
+bats tests/unit/test_core_system.bats
+
+# Run with TAP output
+bats --tap tests/integration/test_installation.bats
+```
+
+### Docker Compose Services
+
+```bash
+# Run basic test suite
+docker-compose -f docker-compose.test.yml up v5-test
+
+# Run integration tests with RabbitMQ
+docker-compose -f docker-compose.test.yml up v5-test-integration
+
+# View test results in browser
+docker-compose -f docker-compose.test.yml up test-viewer
+# Visit http://localhost:8080/results/
+```
+
+### CI/CD Integration
+
+V5 includes comprehensive GitHub Actions workflows:
+
+#### Automated Testing Matrix
+- ✅ **Lint and Static Analysis** - flake8, black, shellcheck
+- ✅ **Unit Tests** - Python 3.8, 3.9, 3.10, 3.11
+- ✅ **Integration Tests** - Docker-based with RabbitMQ
+- ✅ **Cross-Platform** - Ubuntu and macOS
+- ✅ **Security Scanning** - Trivy vulnerability scanner
+- ✅ **Performance Tests** - Import and parsing benchmarks
+
+#### Workflow Triggers
+- **Push/PR** to main/develop branches
+- **Daily scheduled** runs at 2 AM UTC  
+- **Manual dispatch** with test type selection
+
+### Test Results and Reporting
+
+#### TAP Output Files
+Test results are saved in TAP format:
+```
+test-results/
+├── installation.tap     # Installation test results
+├── core-system.tap      # Core system test results
+└── integration.tap      # Integration test results
+```
+
+#### GitHub Actions Artifacts
+- Test result TAP files
+- Docker container logs (on failure)
+- Security scan reports (SARIF format)
+- Performance benchmark data
+
+### Writing New Tests
+
+#### BATS Test Example
+```bash
+#!/usr/bin/env bats
+
+load "../test_helper"
+
+setup() {
+    setup_v5_test_env
+}
+
+teardown() {
+    teardown_v5_test_env  
+}
+
+@test "my new feature works correctly" {
+    # Test implementation
+    run my_command --option
+    assert_success
+    assert_output_contains "expected result"
+    assert_file_exists "output.txt"
+}
+```
+
+#### Helper Functions Available
+- `setup_v5_test_env()` - Initialize isolated test environment
+- `teardown_v5_test_env()` - Clean up after tests
+- `assert_success()` - Assert command succeeded
+- `assert_failure()` - Assert command failed
+- `assert_output_contains(text)` - Assert output contains text
+- `assert_file_exists(file)` - Assert file exists
+- `skip_if_missing(cmd)` - Skip test if dependency missing
+
+### Performance Testing
+
+Basic performance benchmarks are included:
+
+```bash
+# Test import performance
+time python3 -c "from core.v5_system import V5System"
+
+# Test goal parsing performance
+time python3 -c "parser.parse() for _ in range(100)"
+```
+
+### Troubleshooting Tests
+
+#### Common Issues
+
+**Docker build fails:**
+```bash
+# Clean Docker cache
+docker system prune -f
+./test.sh --build --clean
+```
+
+**Permission errors:**
+```bash
+# Fix test script permissions
+chmod +x test.sh
+chmod +x tests/test_helper.bash
+```
+
+**BATS not found locally:**
+```bash
+# Use Docker instead
+./test.sh  # Uses Docker by default
+```
+
+**Test failures in CI:**
+- Check GitHub Actions logs
+- Download test result artifacts
+- Review TAP output files
+
+### Test Configuration
+
+#### Environment Variables
+```bash
+export BATS_TEST_TIMEOUT=30      # Test timeout in seconds
+export START_RABBITMQ=true       # Enable RabbitMQ for integration tests
+export PYTHONPATH="$PWD/src"      # Python module path
+export BATS_LIB_PATH="/usr/lib/bats"  # BATS helper library path
+```
+
+#### Docker Override
+```yaml
+# docker-compose.override.yml
+version: '3.8'
+services:
+  v5-test:
+    environment:
+      - CUSTOM_TEST_VAR=value
+    volumes:
+      - ./custom-fixtures:/app/fixtures
+```
+
+---
+
 ## 🤝 Contributing
 
 V5 is designed to be lean and focused. Contributions should:
