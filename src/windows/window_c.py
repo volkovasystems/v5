@@ -20,6 +20,7 @@ class WindowC:
     """Window C - Pattern Learning Governor"""
 
     def __init__(self, target_repository: str):
+        """Initialize WindowC with target repository path."""
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_c'
@@ -94,6 +95,7 @@ class WindowC:
             print("🛑 V5 Window C stopped")
 
 def main():
+    """Main entry point for Window C."""
     if len(sys.argv) < 2:
         print("Usage: python3 window_c.py <target_repository_path>")
         sys.exit(1)

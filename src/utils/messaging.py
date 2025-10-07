@@ -23,6 +23,7 @@ class V5MessageBus:
     """Central message bus for V5 tool communication"""
 
     def __init__(self, config_path: Path):
+        """Initialize the message bus with configuration path."""
         self.config_path = config_path
         self.config = self.load_config()
         self.connection = None
@@ -136,8 +137,7 @@ class V5MessageBus:
         self, exchange: str, routing_key: str,
         message: Dict[str, Any], window_id: str = None
     ):
-        """Publish a message to the specified exchange and routing key"""
-        """Publish a message to the message bus"""
+        """Publish a message to the specified exchange and routing key."""
         if not self.is_connected or not self.channel:
             self.logger.warning(
                 f"Not connected - message dropped: {routing_key}"
@@ -173,8 +173,7 @@ class V5MessageBus:
     def subscribe_to_queue(
         self, queue: str, callback: Callable, window_id: str = None
     ):
-        """Subscribe to a message queue with callback function"""
-        """Subscribe to a queue for message consumption"""
+        """Subscribe to a message queue with callback function."""
         if not self.is_connected or not self.channel:
             self.logger.warning(
                 f"Not connected - cannot subscribe to: {queue}"
@@ -246,6 +245,7 @@ class WindowMessenger:
     """Simplified messaging interface for individual windows"""
 
     def __init__(self, window_id: str, message_bus: V5MessageBus):
+        """Initialize the window messenger with ID and message bus."""
         self.window_id = window_id
         self.message_bus = message_bus
         self.logger = logging.getLogger(f'WindowMessenger-{window_id}')
@@ -349,6 +349,7 @@ class OfflineMessenger:
     """Fallback messenger when RabbitMQ is not available"""
 
     def __init__(self, window_id: str):
+        """Initialize the offline messenger with window ID."""
         self.window_id = window_id
         self.logger = logging.getLogger(f'OfflineMessenger-{window_id}')
 

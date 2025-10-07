@@ -32,6 +32,7 @@ class GoalParser:
     """Parser for V5 goal.yaml format"""
 
     def __init__(self, goal_file: Path):
+        """Initialize the goal parser with goal file path."""
         self.goal_file = goal_file
         self.raw_content = ""
         self.parsed_goal = None

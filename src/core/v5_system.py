@@ -20,6 +20,7 @@ class V5System:
     """Main controller for the V5 development automation tool"""
 
     def __init__(self, target_repository: str):
+        """Initialize the V5System with target repository path."""
         self.target_repo = Path(target_repository).absolute()
         self.system_platform = platform.system().lower()
         self.warp_dir = self.target_repo / '.warp'

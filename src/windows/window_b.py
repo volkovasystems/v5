@@ -22,6 +22,7 @@ class WindowB:
     """Window B - Silent Code Fixer"""
 
     def __init__(self, target_repository: str):
+        """Initialize WindowB with target repository path."""
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_b'
@@ -263,10 +264,12 @@ class WindowB:
         """Start all message listeners"""
         # Listen for Window A activities
         def window_a_callback(message, window_id):
+            """Callback for Window A messages."""
             self.handle_window_a_activity(message, window_id)
 
         # Listen for protocol updates
         def protocol_callback(message, window_id):
+            """Callback for protocol update messages."""
             self.handle_protocol_update(message, window_id)
 
         # Subscribe to Window A activities

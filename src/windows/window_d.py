@@ -18,6 +18,7 @@ class WindowD:
     """Window D - Governance QA Auditor"""
 
     def __init__(self, target_repository: str):
+        """Initialize WindowD with target repository path."""
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_d'
@@ -87,6 +88,7 @@ class WindowD:
             print("🛑 V5 Window D stopped")
 
 def main():
+    """Main entry point for Window D."""
     if len(sys.argv) < 2:
         print("Usage: python3 window_d.py <target_repository_path>")
         sys.exit(1)

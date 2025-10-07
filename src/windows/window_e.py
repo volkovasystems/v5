@@ -18,6 +18,7 @@ class WindowE:
     """Window E - Feature Insight Documentarian"""
 
     def __init__(self, target_repository: str):
+        """Initialize WindowE with target repository path."""
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_e'
@@ -93,6 +94,7 @@ class WindowE:
             print("🛑 V5 Window E stopped")
 
 def main():
+    """Main entry point for Window E."""
     if len(sys.argv) < 2:
         print("Usage: python3 window_e.py <target_repository_path>")
         sys.exit(1)

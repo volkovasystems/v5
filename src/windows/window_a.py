@@ -25,6 +25,7 @@ class WindowA:
     """Window A - Human Interactive Development Hub"""
 
     def __init__(self, target_repository: str):
+        """Initialize WindowA with target repository path."""
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_a'
@@ -152,6 +153,7 @@ class WindowA:
     def start_protocol_listener(self):
         """Start listening for protocol updates from Window C"""
         def protocol_callback(message, window_id):
+            """Callback for protocol update messages."""
             self.handle_protocol_update(message, window_id)
 
         self.messenger.listen_for_protocol_updates(protocol_callback)
