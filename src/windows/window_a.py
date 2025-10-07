@@ -267,7 +267,10 @@ class WindowA:
         print(f"   Goal: {self.goal}")
         print(f"   Active Rules: {len(self.protocols.get('rules', {}))}")
         messaging_status = (
-            'Connected' if hasattr(self.messenger, 'message_bus') else 'Offline'
+            'Connected' if (hasattr(self.messenger, 'message_bus') and 
+                          hasattr(self.messenger.message_bus, 'is_connected') and 
+                          self.messenger.message_bus.is_connected) 
+            else 'Offline'
         )
         print(f"   Messaging: {messaging_status}")
 
@@ -308,55 +311,48 @@ class WindowA:
         print(f"   🔄 Rules updated automatically by Window C")
 
     def update_goal(self, new_goal: str):
-        """Update repository goal"""
+        """Update repository goal using goal_parser utilities"""
         try:
             goal_file = self.warp_dir / 'goal.yaml'
-
-            # Read current content
-            if goal_file.exists():
-                content = goal_file.read_text()
-            else:
-                content = ""
-
-            # Update YAML format goal - parse and update properly
+            
+            # Use goal parser to update the file safely
             try:
-                import yaml
-                if content.strip():
-                    data = yaml.safe_load(content)
+                # Try YAML-aware update first
+                from utils.goal_parser import YAML_AVAILABLE
+                
+                if YAML_AVAILABLE:
+                    # Use PyYAML if available
+                    import yaml  # Import locally to avoid module-level dependency
+                    
+                    # Read current content
+                    if goal_file.exists():
+                        content = goal_file.read_text()
+                        if content.strip():
+                            data = yaml.safe_load(content)
+                        else:
+                            data = {}
+                    else:
+                        data = {}
+    
+                    # Update goal primary field
+                    if 'goal' not in data:
+                        data['goal'] = {}
+                    data['goal']['primary'] = new_goal
+                    data['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+                    # Write back as YAML
+                    updated_content = yaml.dump(
+                        data, default_flow_style=False, allow_unicode=True
+                    )
+                    goal_file.write_text(updated_content)
+                    
                 else:
-                    data = {}
-
-                # Update goal primary field
-                if 'goal' not in data:
-                    data['goal'] = {}
-                data['goal']['primary'] = new_goal
-                data['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-                # Write back as YAML
-                updated_content = yaml.dump(
-                    data, default_flow_style=False, allow_unicode=True
-                )
-                goal_file.write_text(updated_content)
-
+                    # Fallback to simple text update if PyYAML not available
+                    self._update_goal_text_fallback(goal_file, new_goal)
+                    
             except ImportError:
-                # Fallback to simple text update if PyYAML not available
-                lines = content.split('\n')
-                updated = False
-
-                for i, line in enumerate(lines):
-                    if line.strip().startswith('primary:'):
-                        lines[i] = f'  primary: "{new_goal}"'
-                        updated = True
-                        break
-
-                if not updated:
-                    lines.insert(0, 'goal:')
-                    lines.insert(1, f'  primary: "{new_goal}"')
-                    lines.insert(2, '')
-
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                lines.append(f'last_updated: "{timestamp}"')
-                goal_file.write_text('\n'.join(lines))
+                # Fallback to simple text update
+                self._update_goal_text_fallback(goal_file, new_goal)
 
             self.goal = new_goal
             print(f"✅ Goal updated: {new_goal}")
@@ -371,6 +367,42 @@ class WindowA:
         except Exception as e:
             self.logger.error(f"Failed to update goal: {e}")
             print(f"❌ Failed to update goal: {e}")
+    
+    def _update_goal_text_fallback(self, goal_file: Path, new_goal: str):
+        """Fallback method for updating goal file without PyYAML"""
+        # Read current content
+        if goal_file.exists():
+            content = goal_file.read_text()
+        else:
+            content = ""
+            
+        lines = content.split('\n')
+        updated = False
+
+        for i, line in enumerate(lines):
+            if line.strip().startswith('primary:'):
+                lines[i] = f'  primary: "{new_goal}"'
+                updated = True
+                break
+
+        if not updated:
+            lines.insert(0, 'goal:')
+            lines.insert(1, f'  primary: "{new_goal}"')
+            lines.insert(2, '')
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Add or update timestamp
+        timestamp_updated = False
+        for i, line in enumerate(lines):
+            if line.strip().startswith('last_updated:'):
+                lines[i] = f'last_updated: "{timestamp}"'
+                timestamp_updated = True
+                break
+        
+        if not timestamp_updated:
+            lines.append(f'last_updated: "{timestamp}"')
+            
+        goal_file.write_text('\n'.join(lines))
 
     def run(self):
         """Main interaction loop"""
