@@ -62,15 +62,8 @@ RUN cat > /usr/local/bin/run-v5-tests << 'EOF'
 #!/bin/bash
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-echo -e "${BLUE}🧪 V5 BATS Test Suite Runner${NC}"
-echo "================================="
+echo "V5 BATS Test Suite Runner"
+echo "========================="
 
 # Activate Python virtual environment
 source /home/tester/venv/bin/activate
@@ -87,13 +80,13 @@ run_test_suite() {
     local suite_name="$1"
     local test_file="$2"
     
-    echo -e "\n${YELLOW}Running $suite_name tests...${NC}"
+    echo "Running $suite_name tests..."
     
     if bats --tap "$test_file" > "/app/test-results/${suite_name}.tap" 2>&1; then
-        echo -e "${GREEN}✅ $suite_name tests: PASSED${NC}"
+        echo "PASSED: $suite_name tests"
         return 0
     else
-        echo -e "${RED}❌ $suite_name tests: FAILED${NC}"
+        echo "FAILED: $suite_name tests"
         cat "/app/test-results/${suite_name}.tap"
         return 1
     fi
@@ -119,17 +112,21 @@ fi
 
 # Run any additional test files found
 for test_file in tests/unit/*.bats tests/integration/*.bats; do
-    if [ -f "$test_file" ] && \
-            [[ "$test_file" != *"test_installation.bats" ]] && \
-            [[ "$test_file" != *"test_core_system.bats" ]]; then
-        suite_name=$(basename "$test_file" .bats)
-        run_test_suite "$suite_name" "$test_file" || ((failures++))
+    if [ -f "$test_file" ]; then
+        case "$test_file" in
+            *"test_installation.bats"*) continue ;;
+            *"test_core_system.bats"*) continue ;;
+            *) 
+                suite_name=$(basename "$test_file" .bats)
+                run_test_suite "$suite_name" "$test_file" || ((failures++))
+                ;;
+        esac
     fi
 done
 
 # Generate summary report
-echo -e "\n${BLUE}📊 Test Results Summary${NC}"
-echo "========================"
+echo "Test Results Summary"
+echo "===================="
 
 total_tests=0
 passed_tests=0
@@ -144,20 +141,19 @@ for tap_file in /app/test-results/*.tap; do
         passed_tests=$((passed_tests + passed))
         
         if [ "$tests" -eq "$passed" ] && [ "$tests" -gt 0 ]; then
-            echo -e "${GREEN}✅ $suite: $passed/$tests tests passed${NC}"
+            echo "PASS: $suite: $passed/$tests tests passed"
         else
-            echo -e "${RED}❌ $suite: $passed/$tests tests passed${NC}"
+            echo "FAIL: $suite: $passed/$tests tests passed"
         fi
     fi
 done
 
 echo "------------------------"
 if [ "$failures" -eq 0 ] && [ "$total_tests" -gt 0 ]; then
-    echo -e "${GREEN}🎉 ALL TESTS PASSED: $passed_tests/$total_tests${NC}"
+    echo "ALL TESTS PASSED: $passed_tests/$total_tests"
     exit 0
 else
-    echo -e "${RED}💥 TESTS FAILED: $passed_tests/$total_tests passed, \
-$failures suites failed${NC}"
+    echo "TESTS FAILED: $passed_tests/$total_tests passed, $failures suites failed"
     exit 1
 fi
 EOF
