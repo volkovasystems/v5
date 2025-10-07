@@ -123,7 +123,8 @@ class WindowB:
             issues_found.append('security_focus')
 
         # Check for database-related requests
-        if any(word in prompt.lower() for word in ['database', 'query', 'sql', 'data']):
+        db_words = ['database', 'query', 'sql', 'data']
+        if any(word in prompt.lower() for word in db_words):
             issues_found.append('database_focus')
 
         if issues_found:
@@ -162,6 +163,37 @@ class WindowB:
 
         return recommendations
 
+    def analyze_ai_response(self, data: Dict):
+        """Analyze AI response for potential issues"""
+        response = data.get('response', '')
+        
+        self.logger.info(f"Analyzing AI response: {response[:50]}...")
+        
+        # Simple analysis of AI response
+        analysis = {
+            'response_quality': 'good',
+            'potential_issues': [],
+            'recommendations': []
+        }
+        
+        # Check for common AI response issues
+        if len(response) < 10:
+            analysis['potential_issues'].append('response_too_short')
+            analysis['recommendations'].append('Request more detailed response')
+        
+        if 'error' in response.lower():
+            analysis['potential_issues'].append('error_mentioned')
+            analysis['recommendations'].append('Review error handling approach')
+        
+        if analysis['potential_issues']:
+            self.messenger.send_activity('ai_response_analyzed', {
+                'analysis': analysis,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            issues_count = len(analysis['potential_issues'])
+            self.logger.info(f"AI response analysis: {issues_count} issues found")
+    
     def analyze_code_change(self, data: Dict):
         """Analyze code changes for issues"""
         change_type = data.get('change_type', '')
@@ -293,7 +325,9 @@ class WindowB:
                 self.logger.info("Subscribed to Window A activities")
 
             except Exception as e:
-                self.logger.error(f"Failed to subscribe to Window A activities: {e}")
+                self.logger.error(
+                    f"Failed to subscribe to Window A activities: {e}"
+                )
 
         # Listen for protocol updates
         self.messenger.listen_for_protocol_updates(protocol_callback)
@@ -311,7 +345,9 @@ class WindowB:
             })
 
             # Start message listeners in background
-            listener_thread = threading.Thread(target=self.start_listeners, daemon=True)
+            listener_thread = threading.Thread(
+                target=self.start_listeners, daemon=True
+            )
             listener_thread.start()
 
             # Start repository monitoring in background
