@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Requirements specification with exact dependencies
   - Executable permissions for all scripts
   - Production-ready repository URLs (volkovasystems/v5)
+  - Single source of truth VERSION file for consistent versioning
+  - Version display in all tools (--version, -v flags)
 
 ### Technical Details
 - **Dependencies**: `pika`, `psutil`, `watchdog`, `PyYAML`

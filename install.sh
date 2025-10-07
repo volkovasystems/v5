@@ -1,9 +1,12 @@
 #!/bin/bash
 set -e
 
+# Read version from VERSION file
+VERSION="$(cat "$(dirname "${BASH_SOURCE[0]}")/VERSION" 2>/dev/null || echo "unknown")"
+
 # V5 - 5 Strategies Productive Development Tool - Installation Script
-echo "🚀 Installing V5 - 5 Strategies Productive Development Tool"
-echo "======================================================"
+echo "🚀 Installing V5 - 5 Strategies Productive Development Tool v$VERSION"
+echo "================================================================="
 
 # Colors for output
 RED='\033[0;31m'

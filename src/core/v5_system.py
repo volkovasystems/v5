@@ -25,6 +25,9 @@ class V5System:
         self.warp_dir = self.target_repo / '.warp'
         self.v5_root = Path(__file__).parent.parent.parent
         
+        # Read version
+        self.version = self.read_version()
+        
         # Setup logging
         self.setup_logging()
         
@@ -35,6 +38,16 @@ class V5System:
             )
             
         self.logger.info(f"Initializing V5 tool for: {self.target_repo}")
+    
+    def read_version(self) -> str:
+        """Read version from VERSION file"""
+        try:
+            version_file = self.v5_root / 'VERSION'
+            if version_file.exists():
+                return version_file.read_text().strip()
+        except Exception:
+            pass
+        return "unknown"
     
     def setup_logging(self):
         """Configure logging for the V5 tool"""
@@ -55,6 +68,7 @@ class V5System:
         )
         
         self.logger = logging.getLogger('V5System')
+        self.logger.info(f"V5 System version: {self.version}")
     
     def initialize_repository(self):
         """Initialize the target repository with .warp structure"""
@@ -382,9 +396,25 @@ version: "1.0"
 
 def main():
     """Main entry point for V5 tool"""
+    # Handle version flag first (no repo path needed)
+    if len(sys.argv) >= 2 and sys.argv[1] in ['--version', '-v', 'version']:
+        # Create minimal instance just to get version
+        v5_root = Path(__file__).parent.parent.parent
+        try:
+            version_file = v5_root / 'VERSION'
+            if version_file.exists():
+                version = version_file.read_text().strip()
+            else:
+                version = "unknown"
+        except Exception:
+            version = "unknown"
+        print(f"V5 - 5 Strategies Productive Development Tool v{version}")
+        sys.exit(0)
+    
     if len(sys.argv) < 2:
         print("Usage: python3 v5_system.py <target_repository_path> [command]")
-        print("Commands: init, start, stop, status")
+        print("Commands: init, start, stop, status, version")
+        print("Options: --version, -v")
         sys.exit(1)
     
     target_repo = sys.argv[1]

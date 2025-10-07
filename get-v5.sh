@@ -2,10 +2,13 @@
 set -e
 
 # V5 Remote Installer - 5 Strategies Productive Development Tool
-# Usage: curl -fsSL https://raw.githubusercontent.com/your-username/v5/main/get-v5.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/volkovasystems/v5/main/get-v5.sh | bash
 
-echo "🚀 V5 Remote Installer - 5 Strategies Productive Development Tool"
-echo "================================================================"
+# Fetch version dynamically
+VERSION=$(curl -fsSL "https://raw.githubusercontent.com/volkovasystems/v5/main/VERSION" 2>/dev/null || echo "latest")
+
+echo "🚀 V5 Remote Installer - 5 Strategies Productive Development Tool v$VERSION"
+echo "============================================================================"
 
 # Colors for output
 RED='\033[0;31m'
@@ -65,6 +68,7 @@ add_to_path() {
 # Function to download files with curl
 download_files_with_curl() {
     # Download main files
+    curl -fsSL "$REPO_URL/raw/main/VERSION" -o VERSION
     curl -fsSL "$REPO_URL/raw/main/install.sh" -o install.sh
     curl -fsSL "$REPO_URL/raw/main/v5" -o v5
     curl -fsSL "$REPO_URL/raw/main/requirements.txt" -o requirements.txt
