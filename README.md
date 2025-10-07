@@ -81,7 +81,7 @@ sudo yum install rabbitmq-server
 # macOS:
 brew install rabbitmq
 
-# Windows: Download from https://www.rabbitmq.com/download.html
+# Windows: Download from https://github.com/rabbitmq/rabbitmq-server/releases
 ```
 
 ### Troubleshooting
@@ -125,7 +125,7 @@ v5 /path/to/your/project init
 # For system install
 v5 /path/to/your/project start
 
-# For local install  
+# For local install
 ./v5 /path/to/your/project start
 ```
 
@@ -147,7 +147,7 @@ Commands:
   stop     - Stop all V5 windows
   status   - Check tool status
   version  - Show version information
-  
+
 Options:
   --version, -v  - Show version and exit
 ```
@@ -241,7 +241,7 @@ V5 uses a structured YAML format for repository goals that enables optimal AI un
 goal:
   primary: "Build a high-performance task management API"
   description: |
-    RESTful API for task creation, assignment, and tracking with 
+    RESTful API for task creation, assignment, and tracking with
     real-time updates and robust authentication.
 
 success_criteria:
@@ -260,10 +260,10 @@ stakeholders:
 
 scope:
   included: |
-    Task CRUD operations, user authentication, team management, 
+    Task CRUD operations, user authentication, team management,
     real-time notifications, API documentation
   excluded: |
-    Frontend UI, mobile applications, email notifications, 
+    Frontend UI, mobile applications, email notifications,
     third-party calendar integrations, reporting dashboards
 ```
 

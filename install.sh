@@ -182,7 +182,7 @@ case "$OS" in
         ;;
     "msys"*|"cygwin"*|"mingw"*)
         echo -e "${YELLOW}   Windows detected. RabbitMQ requires manual installation.${NC}"
-        echo -e "${BLUE}   Please download and install from: https://www.rabbitmq.com/download.html${NC}"
+        echo -e "${BLUE}   Please download and install from: https://github.com/rabbitmq/rabbitmq-server/releases${NC}"
         echo -e "${BLUE}   Or use Windows Subsystem for Linux (WSL) for automatic installation${NC}"
         ;;
     "linux_wsl")

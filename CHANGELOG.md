@@ -113,7 +113,7 @@ cat VERSION                      # Contains: 1.0.0
 v5/
 ├── VERSION             # Single source of truth for version number
 ├── get-v5.sh           # Remote installation script
-├── install.sh          # Local installation script  
+├── install.sh          # Local installation script
 ├── v5                  # Main executable
 ├── requirements.txt    # Python dependencies
 ├── README.md           # Comprehensive documentation

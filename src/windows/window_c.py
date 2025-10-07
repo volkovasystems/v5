@@ -18,32 +18,32 @@ from utils.messaging import create_messenger
 
 class WindowC:
     """Window C - Pattern Learning Governor"""
-    
+
     def __init__(self, target_repository: str):
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_c'
         self.running = True
-        
+
         # Setup logging
         self.setup_logging()
-        
+
         # Initialize messaging
         config_path = self.warp_dir / 'communication' / 'config.json'
         self.messenger = create_messenger(self.window_id, config_path)
-        
+
         # Pattern tracking
         self.patterns = {}
         self.rule_count = 0
-        
+
         self.logger.info("Window C initialized - Pattern Learning Governor")
         self.show_status()
-    
+
     def setup_logging(self):
         """Setup logging for Window C"""
         log_file = self.warp_dir / 'logs' / f'{self.window_id}.log'
         log_file.parent.mkdir(exist_ok=True)
-        
+
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(levelname)s - %(message)s',
@@ -52,9 +52,9 @@ class WindowC:
                 logging.StreamHandler(sys.stdout)
             ]
         )
-        
+
         self.logger = logging.getLogger(self.window_id)
-    
+
     def show_status(self):
         """Show Window C status"""
         print("\n" + "="*60)
@@ -72,7 +72,7 @@ class WindowC:
         print("   • Exclusive .warp directory access")
         print("   • Notify A & B of rule changes")
         print("-"*60)
-    
+
     def run(self):
         """Main execution loop"""
         try:
@@ -80,14 +80,14 @@ class WindowC:
                 'repository': str(self.target_repo),
                 'mode': 'pattern_learning'
             })
-            
+
             self.logger.info("Window C running - learning patterns...")
             print("🧠 Pattern learning started - monitoring A↔B interactions")
-            
+
             # Keep running
             while self.running:
                 time.sleep(1)
-                
+
         except KeyboardInterrupt:
             self.running = False
         finally:
@@ -97,7 +97,7 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python3 window_c.py <target_repository_path>")
         sys.exit(1)
-    
+
     try:
         window_c = WindowC(sys.argv[1])
         window_c.run()
