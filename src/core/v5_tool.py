@@ -443,10 +443,45 @@ version: "1.0"
         pid_file.unlink()
         self.logger.info("V5 tool stopped")
 
-def main():
-    """Main entry point for V5 tool"""
-    # Handle version flag first (no repo path needed)
-    if len(sys.argv) >= 2 and sys.argv[1] in ['--version', '-v', 'version']:
+def find_git_repository(start_path: Path = None) -> Path:
+    """Find the root of a git repository starting from the given path.
+    
+    Args:
+        start_path: Path to start searching from (defaults to current directory)
+        
+    Returns:
+        Path to the git repository root
+        
+    Raises:
+        ValueError: If no git repository is found
+    """
+    if start_path is None:
+        start_path = Path.cwd()
+    
+    current = start_path.absolute()
+    
+    # Walk up the directory tree looking for .git
+    while current != current.parent:
+        if (current / '.git').exists():
+            return current
+        current = current.parent
+    
+    # Check the root directory as well
+    if (current / '.git').exists():
+        return current
+    
+    raise ValueError(f"No git repository found in {start_path} or its parent directories")
+
+def parse_arguments():
+    """Parse command line arguments with flexible syntax.
+    
+    Returns:
+        tuple: (target_repo, command)
+    """
+    args = sys.argv[1:]
+    
+    # Handle version flags
+    if args and args[0] in ['--version', '-v', 'version']:
         # Create minimal instance just to get version
         v5_root = Path(__file__).parent.parent.parent
         try:
@@ -459,49 +494,131 @@ def main():
             version = "unknown"
         print(f"V5 - 5 Strategies Productive Development Tool v{version}")
         sys.exit(0)
+    
+    # Handle help flag
+    if args and args[0] in ['--help', '-h', 'help']:
+        print("V5 - 5 Strategies Productive Development Tool")
+        print("")
+        print("Usage:")
+        print("  v5                              # Initialize and start in current git repo")
+        print("  v5 [command]                    # Run command in current git repo")
+        print("  v5 <path> [command]             # Run command in specified repo")
+        print("")
+        print("Commands:")
+        print("  init     - Initialize repository with V5 structure")
+        print("  start    - Start the V5 tool (default)")
+        print("  stop     - Stop all V5 windows")
+        print("  status   - Check tool status")
+        print("  version  - Show version information")
+        print("")
+        print("Options:")
+        print("  --version, -v    - Show version and exit")
+        print("  --help, -h       - Show this help message")
+        print("")
+        print("Examples:")
+        print("  v5                    # Start V5 in current git repository")
+        print("  v5 init               # Initialize current git repository")
+        print("  v5 /path/to/repo      # Start V5 in specified repository")
+        print("  v5 /path/to/repo init # Initialize specified repository")
+        sys.exit(0)
+    
+    # If no arguments, use current directory with 'start' command
+    if not args:
+        try:
+            return find_git_repository(), 'start'
+        except ValueError as e:
+            print(f"❌ Error: {e}")
+            print("")
+            print("Hint: Navigate to a git repository or specify a path:")
+            print("  cd /path/to/your/git/repo && v5")
+            print("  v5 /path/to/your/git/repo")
+            sys.exit(1)
+    
+    # Check if first argument is a command (not a path)
+    commands = ['init', 'start', 'stop', 'status']
+    if args[0] in commands:
+        # First argument is a command, use current directory
+        try:
+            return find_git_repository(), args[0]
+        except ValueError as e:
+            print(f"❌ Error: {e}")
+            print("")
+            print("Hint: Navigate to a git repository or specify a path:")
+            print(f"  cd /path/to/your/git/repo && v5 {args[0]}")
+            print(f"  v5 /path/to/your/git/repo {args[0]}")
+            sys.exit(1)
+    
+    # First argument is a path
+    target_repo = Path(args[0])
+    command = args[1] if len(args) > 1 else 'start'
+    
+    return target_repo, command
 
-    if len(sys.argv) < 2:
-        print("Usage: python3 v5_tool.py <target_repository_path> [command]")
-        print("Commands: init, start, stop, status, version")
-        print("Options: --version, -v")
-        sys.exit(1)
-
-    target_repo = sys.argv[1]
-    command = sys.argv[2] if len(sys.argv) > 2 else 'start'
+def main():
+    """Main entry point for V5 tool"""    
+    target_repo, command = parse_arguments()
+    
+    # Display what we're doing
+    repo_name = target_repo.name
+    current_dir = Path.cwd()
+    
+    if target_repo == current_dir:
+        print(f"🚀 V5 - Preparing productive development environment in '{repo_name}'")
+    else:
+        print(f"🚀 V5 - Preparing productive development environment")
+        print(f"   Repository: {target_repo}")
 
     try:
-        v5 = V5Tool(target_repo)
+        v5 = V5Tool(str(target_repo))
 
         if command == 'init':
+            print(f"🔧 Initializing V5 structure in {repo_name}...")
             v5.initialize_repository()
             if v5.install_dependencies():
-                print("✅ V5 tool initialized successfully")
+                print(f"✅ {repo_name} is now ready for 5 strategies productive development!")
+                print("")
+                print("💡 Next steps:")
+                print("   1. Edit .warp/goal.yaml to define your repository objective")
+                print("   2. Run 'v5 start' to launch the 5-window environment")
+                print("   3. Work in Window A - other windows assist automatically")
             else:
-                print("⚠️ V5 tool initialized with missing dependencies")
+                print("⚠️ V5 structure created, but some dependencies are missing")
+                print("   The tool will work in offline mode")
 
         elif command == 'start':
+            print(f"🔄 Initializing and starting V5 environment...")
             v5.initialize_repository()
             if v5.install_dependencies():
                 launched = v5.launch_windows()
-                print(f"✅ V5 tool started with {len(launched)} windows")
+                print(f"✅ V5 productive development environment active!")
+                print(f"   → {len(launched)} windows launched for {repo_name}")
+                print("")
+                print("💡 How to use:")
+                print("   • Window A: Your main development interface")
+                print("   • Other windows: Working silently to enhance your productivity")
+                print("   • Focus on coding - V5 handles quality, patterns & insights")
             else:
                 print("❌ Failed to start - missing dependencies")
+                print("   Try running the installation again or install dependencies manually")
 
         elif command == 'stop':
+            print(f"🛑 Stopping V5 environment for {repo_name}...")
             v5.stop_tool()
-            print("✅ V5 tool stopped")
+            print("✅ V5 tool stopped - all windows closed")
 
         elif command == 'status':
+            print(f"🔍 Checking V5 status for {repo_name}...")
             # Check tool status
             pid_file = v5.warp_dir / 'communication' / 'pids.json'
             if pid_file.exists():
                 with open(pid_file) as f:
                     pids = json.load(f)
-                print(f"✅ V5 tool running with {len(pids)} windows")
+                print(f"✅ V5 tool is running with {len(pids)} active windows:")
                 for window_id, pid in pids.items():
-                    print(f"  {window_id}: PID {pid}")
+                    print(f"   • {window_id}: PID {pid}")
             else:
-                print("❌ V5 tool is not running")
+                print("😴 V5 tool is not currently running")
+                print("   Use 'v5 start' to launch the productive development environment")
 
         else:
             print(f"Unknown command: {command}")
@@ -509,6 +626,9 @@ def main():
 
     except Exception as e:
         print(f"❌ Error: {e}")
+        if "does not exist" in str(e):
+            print("")
+            print("Hint: Make sure the repository path exists and is accessible")
         sys.exit(1)
 
 if __name__ == '__main__':

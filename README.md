@@ -42,6 +42,9 @@ curl -fsSL https://raw.githubusercontent.com/volkovasystems/v5/main/get-v5.sh | 
 git clone https://github.com/volkovasystems/v5
 cd v5
 ./install.sh
+
+# Optional: Install globally to use 'v5' from anywhere
+./install-global.sh
 ```
 
 ### What gets installed:
@@ -131,19 +134,27 @@ After installation, follow these steps:
 
 ### 1. Initialize a Repository
 ```bash
-# For system install (if you used --system flag)
+# If you installed globally (using install-global.sh)
+cd /path/to/your/project
+v5 init
+
+# Or specify the path explicitly
 v5 /path/to/your/project init
 
-# For local install
+# For local install (not globally installed)
 ./v5 /path/to/your/project init
 ```
 
 ### 2. Start the V5 Tool
 ```bash
-# For system install
+# If installed globally - navigate to your project
+cd /path/to/your/project
+v5 start    # or just 'v5' (start is default)
+
+# Or specify the path explicitly
 v5 /path/to/your/project start
 
-# For local install
+# For local install (not globally installed)
 ./v5 /path/to/your/project start
 ```
 
@@ -154,6 +165,26 @@ v5 /path/to/your/project start
 - The tool handles quality, patterns, and insights automatically
 
 ## 📋 Tool Commands
+
+### Global Installation (Recommended)
+If you ran `./install-global.sh`, you can use `v5` from any git repository:
+
+```bash
+# Navigate to any git repository and run:
+v5                # Initialize and start in current git repo
+v5 init           # Initialize current git repository
+v5 start          # Start the V5 tool
+v5 stop           # Stop all V5 windows
+v5 status         # Check tool status
+v5 version        # Show version information
+v5 help           # Show help message
+
+# Or specify a different repository path:
+v5 /path/to/repo [command]
+```
+
+### Local Installation
+If using local installation without global setup:
 
 ```bash
 ./v5 <repository_path> [command]

@@ -5,6 +5,46 @@ All notable changes to the V5 - 5 Strategies Productive Development Tool will be
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-10-08
+
+**Major Enhancement**: Global Installation and Enhanced Repository Detection
+
+### Added
+- **Global Installation Support**: New `install-global.sh` script creates system-wide `v5` command
+- **Auto Git Repository Detection**: Automatically finds git repository root from current directory
+- **Enhanced CLI Interface**: Improved argument parsing with better help system
+- **Repository Path Arguments**: Optional repository path argument, defaults to current git repo
+- **Smart Directory Navigation**: Works from any directory within a git repository
+- **Global Uninstall Script**: `uninstall-global.sh` for clean removal of global installation
+
+### Enhanced
+- **Improved User Experience**: Run `v5` from anywhere within any git repository
+- **Better Error Messages**: Clear feedback when not in a git repository
+- **Command Examples**: Enhanced help with practical usage examples
+- **Installation Documentation**: Updated README with global installation instructions
+
+### Usage Improvements
+
+After global installation:
+```bash
+# Navigate to any git repository
+cd /path/to/your/project
+
+# Run V5 commands directly
+v5              # Initialize and start
+v5 init         # Initialize only
+v5 status       # Check status
+v5 help         # Show help
+```
+
+### Technical Changes
+- Enhanced `v5_tool.py` with automatic git root detection
+- Improved CLI argument parsing and validation
+- Added repository path resolution logic
+- Better error handling for non-git directories
+
+---
+
 ## [1.0.0] - 2025-10-07
 
 **Initial Release**: V5 - 5 Strategies Productive Development Tool
