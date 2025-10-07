@@ -78,7 +78,7 @@ class WindowA:
     def load_repository_goal(self) -> str:
         """Load repository goal using structured parser"""
         try:
-            goal_file = self.warp_dir / 'goal.txt'
+            goal_file = self.warp_dir / 'goal.yaml'
             if goal_file.exists():
                 # Use the structured parser (V5 format only)
                 parser = GoalParser(goal_file)
@@ -88,11 +88,11 @@ class WindowA:
                     return parsed_goal.primary
                 else:
                     return (
-                        "Invalid goal.txt format - please use V5 structured format"
+                    "Invalid goal.yaml format - please use V5 structured format"
                     )
             
             return (
-                "Define your repository goal in .warp/goal.txt using V5 format"
+                "Define your repository goal in .warp/goal.yaml using V5 format"
             )
         except Exception as e:
             self.logger.error(f"Failed to load repository goal: {e}")
@@ -203,7 +203,7 @@ class WindowA:
         
         else:
             # Regular development prompt - check goal alignment first
-            goal_file = self.warp_dir / 'goal.txt'
+            goal_file = self.warp_dir / 'goal.yaml'
             alignment = check_request_alignment(goal_file, user_input)
             
             if not alignment['aligned'] and alignment['confidence'] > 0.7:
@@ -304,7 +304,7 @@ class WindowA:
     def update_goal(self, new_goal: str):
         """Update repository goal"""
         try:
-            goal_file = self.warp_dir / 'goal.txt'
+            goal_file = self.warp_dir / 'goal.yaml'
             
             # Read current content
             if goal_file.exists():

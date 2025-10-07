@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 V5 Goal Parser
-Parses the structured goal.txt format for optimal AI understanding
+Parses the structured goal.yaml format for optimal AI understanding
 """
 
 import re
@@ -29,7 +29,7 @@ class RepositoryGoal:
     metadata: Dict[str, str]
 
 class GoalParser:
-    """Parser for V5 goal.txt format"""
+    """Parser for V5 goal.yaml format"""
     
     def __init__(self, goal_file: Path):
         self.goal_file = goal_file
@@ -38,7 +38,7 @@ class GoalParser:
         self.logger = logging.getLogger(f'GoalParser')
     
     def parse(self) -> Optional[RepositoryGoal]:
-        """Parse goal.txt into structured format"""
+        """Parse goal.yaml into structured format"""
         if not self.goal_file.exists():
             return None
         
@@ -71,7 +71,7 @@ class GoalParser:
                 return self.parsed_goal
             
         except Exception as e:
-            self.logger.error(f"Failed to parse goal.txt: {e}")
+            self.logger.error(f"Failed to parse goal.yaml: {e}")
             return None
         
         return None

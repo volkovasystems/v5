@@ -180,7 +180,7 @@ After initialization, your repository will have:
 ```
 your-project/
 ├── .warp/                 # V5 tool directory
-│   ├── goal.txt          # Repository objective
+│   ├── goal.yaml         # Repository objective
 │   ├── protocols/        # Rules and patterns (Window C only)
 │   ├── logs/            # Tool activity logs
 │   └── communication/   # RabbitMQ config and PIDs
@@ -191,7 +191,7 @@ your-project/
 ## 🎯 Key Principles
 
 ### Repository Goal First
-Every action must directly serve your repository's main objective. Define this clearly in `.warp/goal.txt`.
+Every action must directly serve your repository's main objective. Define this clearly in `.warp/goal.yaml`.
 
 ### Strict Boundaries
 - **Window A**: Only responds to your exact prompts
@@ -233,7 +233,7 @@ exit          # Stop V5 tool
 
 ## 🔧 Configuration
 
-### Repository Goal (.warp/goal.txt)
+### Repository Goal (.warp/goal.yaml)
 V5 uses a structured YAML format for repository goals that enables optimal AI understanding and prevents scope creep:
 
 ```yaml

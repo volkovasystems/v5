@@ -9,5 +9,5 @@ psutil>=5.9.0
 # File system monitoring
 watchdog>=3.0.0
 
-# YAML parsing for goal.txt
+# YAML parsing for goal.yaml
 PyYAML>=6.0

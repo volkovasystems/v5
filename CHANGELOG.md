@@ -48,7 +48,7 @@ V5 is a complete development productivity tool featuring:
 - **Configuration & Documentation**
   - Comprehensive README with installation and usage instructions
   - Repository structure initialization with `.warp/` directory
-  - Goal-driven development with `goal.txt` configuration
+  - Goal-driven development with `goal.yaml` configuration
   - Cross-platform compatibility documentation
   - Troubleshooting guides and manual installation fallbacks
 

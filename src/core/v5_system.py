@@ -98,7 +98,7 @@ class V5System:
         """Create initial configuration files"""
         
         # Repository goal file
-        goal_file = self.warp_dir / 'goal.txt'
+        goal_file = self.warp_dir / 'goal.yaml'
         if not goal_file.exists():
             goal_content = f"""# V5 Repository Goal Configuration
 # Format: YAML-like structure for optimal AI parsing
@@ -153,7 +153,7 @@ last_updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 version: "1.0"
 """
             goal_file.write_text(goal_content)
-            self.logger.info("Created initial goal.txt with structured format")
+            self.logger.info("Created initial goal.yaml with structured format")
         
         # Essential rules configuration
         rules_file = self.warp_dir / 'protocols' / 'essential_rules.json'
