@@ -18,6 +18,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.messaging import create_messenger
 
+# Configuration constants
+MONITOR_CHECK_INTERVAL = 10  # seconds between repository checks
+ERROR_RETRY_INTERVAL = 5     # seconds to wait after errors
+MAIN_LOOP_INTERVAL = 1       # seconds for main loop sleep
+MIN_RESPONSE_LENGTH = 10     # minimum characters for valid AI response
+MAX_FILES_TO_CHECK = 3       # maximum number of files to check per cycle
+
 class WindowB:
     """Window B - Silent Code Fixer"""
 
@@ -177,7 +184,7 @@ class WindowB:
         }
         
         # Check for common AI response issues
-        if len(response) < 10:
+        if len(response) < MIN_RESPONSE_LENGTH:
             analysis['potential_issues'].append('response_too_short')
             analysis['recommendations'].append('Request more detailed response')
         
@@ -238,11 +245,11 @@ class WindowB:
                 # For now, we'll just simulate periodic checking
 
                 self.check_for_issues()
-                time.sleep(10)  # Check every 10 seconds
+                time.sleep(MONITOR_CHECK_INTERVAL)  # Check every 10 seconds
 
             except Exception as e:
                 self.logger.error(f"Error in repository monitoring: {e}")
-                time.sleep(5)
+                time.sleep(ERROR_RETRY_INTERVAL)
 
     def check_for_issues(self):
         """Check repository for common issues"""
@@ -255,7 +262,7 @@ class WindowB:
                 issues_found = []
 
                 # Check for common Python issues
-                for py_file in python_files[:3]:  # Check first 3 files only
+                for py_file in python_files[:MAX_FILES_TO_CHECK]:  # Check limited files
                     if py_file.exists() and py_file.stat().st_size > 0:
                         issues_found.append(f"Checked {py_file.name}")
 
@@ -361,7 +368,7 @@ class WindowB:
 
             # Keep the main thread alive
             while self.running:
-                time.sleep(1)
+                time.sleep(MAIN_LOOP_INTERVAL)
 
         except KeyboardInterrupt:
             self.logger.info("Window B interrupted by user")

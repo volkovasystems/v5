@@ -16,6 +16,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.messaging import create_messenger
 
+# Configuration constants
+MAIN_LOOP_INTERVAL = 1  # seconds for main loop sleep
+
 class WindowC:
     """Window C - Pattern Learning Governor"""
 
@@ -87,7 +90,7 @@ class WindowC:
 
             # Keep running
             while self.running:
-                time.sleep(1)
+                time.sleep(MAIN_LOOP_INTERVAL)
 
         except KeyboardInterrupt:
             self.running = False
