@@ -278,7 +278,9 @@ version: "1.0"
                 if result.returncode == 0:
                     self.logger.info(f"Installed Python packages: {python_deps}")
                 else:
-                    self.logger.error(f"Failed to install Python packages: {result.stderr}")
+                    self.logger.error(
+                        f"Failed to install Python packages: {result.stderr}"
+                    )
                     return False
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
                 self.logger.error(f"Failed to run pip install: {e}")
@@ -287,7 +289,9 @@ version: "1.0"
         # External dependencies need manual installation
         external_deps = [dep for dep in missing if not dep.startswith('python-')]
         if external_deps:
-            self.logger.warning(f"Please install external dependencies manually: {external_deps}")
+            self.logger.warning(
+                f"Please install external dependencies manually: {external_deps}"
+            )
             if 'rabbitmq-server' in external_deps:
                 self.logger.info("To install RabbitMQ:")
                 if self.system_platform == 'linux':
@@ -295,7 +299,10 @@ version: "1.0"
                 elif self.system_platform == 'darwin':
                     self.logger.info("  brew install rabbitmq")
                 elif self.system_platform == 'windows':
-                    self.logger.info("  Download from: https://github.com/rabbitmq/rabbitmq-server/releases")
+                    download_url = (
+                        "https://github.com/rabbitmq/rabbitmq-server/releases"
+                    )
+                    self.logger.info(f"  Download from: {download_url}")
 
         return len(external_deps) == 0
 
@@ -334,7 +341,9 @@ version: "1.0"
         self.logger.info(f"V5 tool launched with {len(launched_pids)} windows")
         return launched_pids
 
-    def launch_window(self, window_id: str, title: str, script_path: Path) -> Optional[int]:
+    def launch_window(
+        self, window_id: str, title: str, script_path: Path
+    ) -> Optional[int]:
         """Launch a single window based on the platform"""
         try:
             if self.system_platform == 'darwin':  # macOS
@@ -347,14 +356,27 @@ version: "1.0"
             elif self.system_platform == 'linux':
                 # Try various terminals
                 terminals = [
-                    ('warp-terminal', ['--title', title, '--', 'python3', str(script_path)]),
-                    ('gnome-terminal', ['--title', title, '--', 'python3', str(script_path)]),
-                    ('xterm', ['-title', title, '-e', f'cd {self.target_repo} && python3 {script_path}']),
+                    (
+                        'warp-terminal',
+                        ['--title', title, '--', 'python3', str(script_path)]
+                    ),
+                    (
+                        'gnome-terminal',
+                        ['--title', title, '--', 'python3', str(script_path)]
+                    ),
+                    (
+                        'xterm',
+                        ['-title', title, '-e',
+                         f'cd {self.target_repo} && python3 {script_path}']
+                    ),
                 ]
 
                 for terminal, args in terminals:
                     try:
-                        result = subprocess.run(['which', terminal], capture_output=True, text=True, timeout=5)
+                        result = subprocess.run(
+                            ['which', terminal],
+                            capture_output=True, text=True, timeout=5
+                        )
                         if result.returncode == 0:
                             cmd = [terminal] + args
                             break
@@ -367,7 +389,10 @@ version: "1.0"
                 # Windows PowerShell or Command Prompt
                 cmd = [
                     'powershell', '-Command',
-                    f'Start-Process -FilePath "python" -ArgumentList "{script_path}" -WindowStyle Normal'
+                    (
+                        f'Start-Process -FilePath "python" '
+                        f'-ArgumentList "{script_path}" -WindowStyle Normal'
+                    )
                 ]
             else:
                 self.logger.error(f"Unsupported platform: {self.system_platform}")
@@ -408,7 +433,9 @@ version: "1.0"
                     subprocess.run(['kill', str(pid)], check=True)
                 self.logger.info(f"Stopped {window_id} (PID: {pid})")
             except subprocess.CalledProcessError:
-                self.logger.warning(f"Failed to stop {window_id} (PID: {pid}) - may already be stopped")
+                self.logger.warning(
+                    f"Failed to stop {window_id} (PID: {pid}) - may already be stopped"
+                )
 
         # Clean up PID file
         pid_file.unlink()

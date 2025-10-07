@@ -352,7 +352,8 @@ class WindowA:
                     lines.insert(1, f'  primary: "{new_goal}"')
                     lines.insert(2, '')
 
-                lines.append(f'last_updated: "{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}"')
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                lines.append(f'last_updated: "{timestamp}"')
                 goal_file.write_text('\n'.join(lines))
 
             self.goal = new_goal

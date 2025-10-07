@@ -112,11 +112,13 @@ class WindowB:
         issues_found = []
 
         # Check for performance-related requests
-        if any(word in prompt.lower() for word in ['slow', 'performance', 'optimize', 'fast']):
+        perf_words = ['slow', 'performance', 'optimize', 'fast']
+        if any(word in prompt.lower() for word in perf_words):
             issues_found.append('performance_focus')
 
         # Check for security-related requests
-        if any(word in prompt.lower() for word in ['auth', 'login', 'security', 'password']):
+        sec_words = ['auth', 'login', 'security', 'password']
+        if any(word in prompt.lower() for word in sec_words):
             issues_found.append('security_focus')
 
         # Check for database-related requests
@@ -268,18 +270,23 @@ class WindowB:
             self.handle_protocol_update(message, window_id)
 
         # Subscribe to Window A activities
-        if hasattr(self.messenger, 'message_bus') and self.messenger.message_bus.is_connected:
+        has_bus = hasattr(self.messenger, 'message_bus')
+        if has_bus and self.messenger.message_bus.is_connected:
             try:
                 # Create queue for Window A activities
                 queue = f'{self.window_id}_window_a_monitor'
-                self.messenger.message_bus.channel.queue_declare(queue=queue, durable=True)
+                self.messenger.message_bus.channel.queue_declare(
+                    queue=queue, durable=True
+                )
                 self.messenger.message_bus.channel.queue_bind(
                     exchange='window.activities',
                     queue=queue,
                     routing_key='window_a.*'
                 )
 
-                self.messenger.message_bus.subscribe_to_queue(queue, window_a_callback, self.window_id)
+                self.messenger.message_bus.subscribe_to_queue(
+                    queue, window_a_callback, self.window_id
+                )
                 self.logger.info("Subscribed to Window A activities")
 
             except Exception as e:
@@ -305,7 +312,9 @@ class WindowB:
             listener_thread.start()
 
             # Start repository monitoring in background
-            monitor_thread = threading.Thread(target=self.monitor_repository_changes, daemon=True)
+            monitor_thread = threading.Thread(
+                target=self.monitor_repository_changes, daemon=True
+            )
             monitor_thread.start()
 
             self.logger.info("Window B running - monitoring in background...")
