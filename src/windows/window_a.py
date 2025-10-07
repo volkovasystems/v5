@@ -273,7 +273,8 @@ class WindowA:
                 with open(pid_file) as f:
                     pids = json.load(f)
                 print(f"   Running Windows: {list(pids.keys())}")
-            except:
+            except Exception as e:
+                self.logger.warning(f"Error reading PID file: {e}")
                 print("   Running Windows: Unknown")
         else:
             print("   Running Windows: PID file not found")
@@ -283,7 +284,7 @@ class WindowA:
         print(f"\n🎯 REPOSITORY GOAL:")
         print(f"   {self.goal}")
         
-        goal_file = self.warp_dir / 'goal.txt'
+        goal_file = self.warp_dir / 'goal.yaml'
         if goal_file.exists():
             print(f"\n   📄 Full goal description in: {goal_file}")
     
@@ -312,24 +313,42 @@ class WindowA:
             else:
                 content = ""
             
-            # Update the goal line
-            lines = content.split('\n')
-            updated = False
-            
-            for i, line in enumerate(lines):
-                if line.startswith('Repository Goal:'):
-                    lines[i] = f'Repository Goal: {new_goal}'
-                    updated = True
-                    break
-            
-            if not updated:
-                lines.insert(0, f'Repository Goal: {new_goal}')
-                lines.insert(1, '')
-            
-            # Add update timestamp
-            lines.append(f'\nLast updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-            
-            goal_file.write_text('\n'.join(lines))
+            # Update YAML format goal - parse and update properly
+            try:
+                import yaml
+                if content.strip():
+                    data = yaml.safe_load(content)
+                else:
+                    data = {}
+                
+                # Update goal primary field
+                if 'goal' not in data:
+                    data['goal'] = {}
+                data['goal']['primary'] = new_goal
+                data['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                # Write back as YAML
+                updated_content = yaml.dump(data, default_flow_style=False, allow_unicode=True)
+                goal_file.write_text(updated_content)
+                
+            except ImportError:
+                # Fallback to simple text update if PyYAML not available
+                lines = content.split('\n')
+                updated = False
+                
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('primary:'):
+                        lines[i] = f'  primary: "{new_goal}"'
+                        updated = True
+                        break
+                
+                if not updated:
+                    lines.insert(0, 'goal:')
+                    lines.insert(1, f'  primary: "{new_goal}"')
+                    lines.insert(2, '')
+                
+                lines.append(f'last_updated: "{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}"')
+                goal_file.write_text('\n'.join(lines))
             
             self.goal = new_goal
             print(f"✅ Goal updated: {new_goal}")
