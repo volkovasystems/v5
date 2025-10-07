@@ -617,10 +617,11 @@ V5 includes comprehensive GitHub Actions workflows:
 Test results are saved with descriptive names for clarity:
 ```
 test-results/
-├── all-tests-combined-2025-10-07.tap    # All test suites combined
-├── installation-tests-2025-10-07.tap    # Installation tests only
-├── core-tool-tests-2025-10-07.tap       # Core tool tests only
-├── integration-tests-2025-10-07.tap     # Integration tests only
+├── all-tests-combined-2025-10-08.tap    # All test suites combined (72 tests)
+├── install-tests-2025-10-08.tap         # Installation functionality tests (33 tests)
+├── uninstall-tests-2025-10-08.tap       # Uninstallation functionality tests (26 tests)
+├── core-tool-tests-2025-10-08.tap       # Core tool tests (13 tests)
+├── integration-tests-2025-10-08.tap     # Integration tests with RabbitMQ
 └── README.md                             # TAP file format documentation
 ```
 
@@ -636,7 +637,7 @@ V5 intelligently manages TAP files to prevent meaningless repository changes:
 
 ```bash
 # Example: Run tests multiple times
-./test --local --tap installation
+./test --local --tap install
 ⏰ Only timestamps changed, reverted to preserve original timestamps
 
 # Only meaningful changes create diffs

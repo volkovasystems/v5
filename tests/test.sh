@@ -138,11 +138,6 @@ list_test_suites() {
     echo -e "${BLUE}Available Test Suites:${NC}"
     echo "======================"
 
-    # Legacy test file support for backward compatibility
-    if [ -f "$TEST_DIR/integration/test_installation.bats" ]; then
-        echo -e "${GREEN}• installation${NC} - Installation script and executable tests (deprecated)"
-    fi
-
     if [ -f "$TEST_DIR/integration/test_install.bats" ]; then
         echo -e "${GREEN}• install${NC} - Installation script and functionality tests"
     fi
