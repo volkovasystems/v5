@@ -154,6 +154,11 @@ V5 is a complete development productivity tool featuring:
 - **Updated URLs**: Fixed all RabbitMQ download URLs to point to official GitHub releases
 - **Improved Terminal Detection**: Enhanced shell environment detection for better cross-platform compatibility
 - **README Enhancement**: Added comprehensive testing section with examples and troubleshooting
+- **Test File Organization**: Moved all testing files into `tests/` directory for cleaner project structure
+  - `test.sh` → `tests/test.sh` (main test runner)
+  - `docker-compose.test.yml` → `tests/docker-compose.test.yml`
+  - Created root-level `./test` script that delegates to `tests/test.sh`
+  - Updated all documentation and CI/CD references
 
 ### Fixed
 - **File Formatting**: Added proper final newlines to VERSION file and removed trailing whitespace

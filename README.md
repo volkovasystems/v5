@@ -329,17 +329,17 @@ V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with
 
 ```bash
 # Run all tests in Docker (recommended)
-./test.sh
+./test
 
 # Run specific test suite
-./test.sh installation
-./test.sh core-system
+./test installation
+./test core-system
 
 # Run with RabbitMQ integration tests
-./test.sh --integration
+./test --integration
 
 # Run tests locally (requires BATS)
-./test.sh --local
+./test --local
 ```
 
 ### Test Architecture
@@ -408,19 +408,19 @@ ok 5 install.sh shows help with --help flag
 
 ```bash
 # Build and run all tests
-./test.sh --build
+./test --build
 
 # Run with verbose output
-./test.sh --verbose
+./test --verbose
 
 # Run integration tests with RabbitMQ
-./test.sh --integration
+./test --integration
 
 # Clean up after tests
-./test.sh --clean
+./test --clean
 
 # Watch mode - rerun tests on file changes
-./test.sh --watch
+./test --watch
 ```
 
 #### Local Testing
@@ -440,7 +440,7 @@ sudo git clone https://github.com/bats-core/bats-assert.git /usr/lib/bats/bats-a
 **Run tests:**
 ```bash
 # Run locally without Docker
-./test.sh --local
+./test --local
 
 # Run specific test file
 bats tests/unit/test_core_system.bats
@@ -453,13 +453,13 @@ bats --tap tests/integration/test_installation.bats
 
 ```bash
 # Run basic test suite
-docker-compose -f docker-compose.test.yml up v5-test
+docker-compose -f tests/docker-compose.test.yml up v5-test
 
 # Run integration tests with RabbitMQ
-docker-compose -f docker-compose.test.yml up v5-test-integration
+docker-compose -f tests/docker-compose.test.yml up v5-test-integration
 
 # View test results in browser
-docker-compose -f docker-compose.test.yml up test-viewer
+docker-compose -f tests/docker-compose.test.yml up test-viewer
 # Visit http://localhost:8080/results/
 ```
 
@@ -551,20 +551,21 @@ time python3 -c "parser.parse() for _ in range(100)"
 ```bash
 # Clean Docker cache
 docker system prune -f
-./test.sh --build --clean
+./test --build --clean
 ```
 
 **Permission errors:**
 ```bash
 # Fix test script permissions
-chmod +x test.sh
+chmod +x test
+chmod +x tests/test.sh
 chmod +x tests/test_helper.bash
 ```
 
 **BATS not found locally:**
 ```bash
 # Use Docker instead
-./test.sh  # Uses Docker by default
+./test  # Uses Docker by default
 ```
 
 **Test failures in CI:**

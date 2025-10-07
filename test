@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# test - V5 Test Runner (Root Level)
+#
+# This script delegates to the main test runner in tests/test.sh
+# while maintaining the convenience of running tests from the project root.
+
+set -euo pipefail
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEST_RUNNER="$SCRIPT_DIR/tests/test.sh"
+
+# Check if the test runner exists
+if [ ! -f "$TEST_RUNNER" ]; then
+    echo "❌ Test runner not found: $TEST_RUNNER" >&2
+    exit 1
+fi
+
+# Check if test runner is executable
+if [ ! -x "$TEST_RUNNER" ]; then
+    echo "❌ Test runner is not executable: $TEST_RUNNER" >&2
+    echo "Run: chmod +x tests/test.sh" >&2
+    exit 1
+fi
+
+# Delegate to the main test runner with all arguments
+exec "$TEST_RUNNER" "$@"

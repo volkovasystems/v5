@@ -13,8 +13,9 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEST_DIR="$SCRIPT_DIR/tests"
-RESULTS_DIR="$SCRIPT_DIR/test-results"
+V5_ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+TEST_DIR="$SCRIPT_DIR"
+RESULTS_DIR="$V5_ROOT_DIR/test-results"
 
 # Default options
 RUN_INTEGRATION=false
@@ -161,22 +162,22 @@ run_tests_local() {
     fi
     
     # Set up environment
-    export PYTHONPATH="$SCRIPT_DIR/src:${PYTHONPATH:-}"
+    export PYTHONPATH="$V5_ROOT_DIR/src:${PYTHONPATH:-}"
     export BATS_LIB_PATH="${BATS_LIB_PATH:-/usr/lib/bats}"
     
-    cd "$SCRIPT_DIR"
+    cd "$V5_ROOT_DIR"
     
     # Run tests
     local exit_code=0
     
     if [ "${TEST_SUITE:-all}" == "all" ] || [ "${TEST_SUITE:-all}" == "installation" ]; then
         echo -e "\n${CYAN}Running installation tests...${NC}"
-        bats tests/integration/test_installation.bats || exit_code=$?
+        bats "$TEST_DIR/integration/test_installation.bats" || exit_code=$?
     fi
     
     if [ "${TEST_SUITE:-all}" == "all" ] || [ "${TEST_SUITE:-all}" == "core-system" ]; then
         echo -e "\n${CYAN}Running core system tests...${NC}"
-        bats tests/unit/test_core_system.bats || exit_code=$?
+        bats "$TEST_DIR/unit/test_core_system.bats" || exit_code=$?
     fi
     
     return $exit_code
@@ -281,7 +282,7 @@ watch_mode() {
             # Watch for changes in source files and test files
             inotifywait -r -e modify,create,delete \
                 --exclude="\.git|__pycache__|\.pyc$|test-results" \
-                "$SCRIPT_DIR/src" "$SCRIPT_DIR/tests" "$SCRIPT_DIR"/*.sh 2>/dev/null || break
+                "$V5_ROOT_DIR/src" "$SCRIPT_DIR" "$V5_ROOT_DIR"/*.sh 2>/dev/null || break
             
             echo -e "${YELLOW}🔄 Files changed, rebuilding and running tests...${NC}"
             

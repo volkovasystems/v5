@@ -102,7 +102,7 @@ jobs:
       run: |
         export PYTHONPATH="$PWD/src:$PYTHONPATH"
         export BATS_LIB_PATH="/usr/lib/bats"
-        ./test.sh --local core-system
+        ./test --local core-system
         
     - name: Upload test results
       uses: actions/upload-artifact@v3
@@ -130,7 +130,7 @@ jobs:
         
     - name: Run Docker-based tests
       run: |
-        ./test.sh --build --verbose
+        ./test --build --verbose
         
     - name: Upload test results
       uses: actions/upload-artifact@v3
@@ -196,7 +196,7 @@ jobs:
     - name: Run installation-specific tests
       run: |
         export PYTHONPATH="$PWD/src:$PYTHONPATH"
-        ./test.sh --local installation
+        ./test --local installation
 
   # Security scanning
   security-scan:
