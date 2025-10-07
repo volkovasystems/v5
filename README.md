@@ -752,11 +752,48 @@ services:
 
 ## 🤝 Contributing
 
-V5 is designed to be lean and focused. Contributions should:
-1. Serve the core 5-window strategy
-2. Maintain strict scope boundaries
-3. Keep the tool simple and fast
-4. Use clear, non-technical language
+We welcome contributions to V5! This project is designed to be lean and focused, and we'd love your help making it better.
+
+### Quick Contributor Guidelines
+
+Contributions should:
+1. **Serve the 5-window strategy** - Support the core Window A-E architecture
+2. **Maintain strict boundaries** - Respect each window's specific responsibilities
+3. **Keep it simple and fast** - Lean implementation with minimal dependencies
+4. **Use clear, non-technical language** - Accessible to developers of all skill levels
+
+### Getting Started
+
+```bash
+# Fork and clone the repository
+git clone https://github.com/your-username/v5.git
+cd v5
+
+# Set up development environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+pip install -e .[dev]
+
+# Run tests to verify setup
+./test --local  # Should show: ✅ All 72 tests passing
+```
+
+### Development Workflow
+
+- **Branch**: Create feature branches from `main`
+- **Testing**: All changes must include comprehensive tests
+- **Code Style**: Use `black` for formatting, `flake8` for linting
+- **Documentation**: Update relevant documentation for changes
+- **Shell Scripts**: Must pass `shellcheck` validation
+
+**For detailed contributing information**, see **[CONTRIBUTING.md](CONTRIBUTING.md)** which covers:
+- Complete development setup and workflow
+- Architecture guidelines and window responsibilities  
+- Testing requirements and examples
+- Code style standards and documentation requirements
+- Pull request process and review guidelines
+- Issue reporting templates and community guidelines
 
 ## 📄 License
 
