@@ -65,6 +65,24 @@ cd v5
 4. **Cross-Platform**: Works on Linux, macOS, WSL, and Windows
 5. **PATH Management**: System install adds `v5` command globally
 
+### Development Setup
+For contributing or development work:
+```bash
+# Clone the repository
+git clone https://github.com/volkovasystems/v5
+cd v5
+
+# Create virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# For development with optional dependencies
+pip install -e .[all]
+```
+
 ### Manual Installation (if needed)
 If automatic installation fails:
 ```bash
