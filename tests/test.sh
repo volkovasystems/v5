@@ -20,7 +20,6 @@ DATE_STAMP="$(date '+%Y-%m-%d')"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S %Z')"
 # TAP file will be set based on test suite in generate_tap_filename()
 DAILY_TAP_FILE=""
-TEMP_TAP_FILE=""
 
 # Default options
 RUN_INTEGRATION=false
@@ -220,44 +219,7 @@ output_tap_directly() {
     fi
 }
 
-# Compare TAP file content ignoring timestamps to avoid unnecessary overwrites
-compare_tap_content() {
-    local existing_file="$1"
-    local new_content="$2"
-    
-    # If file doesn't exist, content has definitely changed
-    if [ ! -f "$existing_file" ]; then
-        return 1  # Content is different (file doesn't exist)
-    fi
-    
-    # Create normalized versions for comparison (remove timestamp-sensitive lines)
-    local temp_existing="$(mktemp)"
-    local temp_new="$(mktemp)"
-    
-    # Normalize existing file (remove dynamic timestamps and generated times)
-    grep -v -E '^# (Generated|Started|Completed): ' "$existing_file" | \
-        grep -v -E '^# Date: ' > "$temp_existing"
-    
-    # Normalize new content (remove dynamic timestamps and generated times)
-    echo "$new_content" | \
-        grep -v -E '^# (Generated|Started|Completed): ' | \
-        grep -v -E '^# Date: ' > "$temp_new"
-    
-    # Compare normalized content
-    local content_differs
-    if cmp -s "$temp_existing" "$temp_new"; then
-        content_differs=0  # Content is the same
-    else
-        content_differs=1  # Content is different
-    fi
-    
-    # Cleanup temp files
-    rm -f "$temp_existing" "$temp_new"
-    
-    return $content_differs
-}
-
-# Initialize daily TAP file (create temporary working file)
+# Initialize daily TAP file (overwrites existing file for the day)
 init_daily_tap() {
     local test_suite="${1:-all}"
     
@@ -265,18 +227,13 @@ init_daily_tap() {
     DAILY_TAP_FILE=$(generate_tap_filename "$test_suite")
     
     mkdir -p "$RESULTS_DIR"
-    
-    # Use a temporary file for building content, we'll compare and possibly overwrite later
-    TEMP_TAP_FILE="${DAILY_TAP_FILE}.building"
-    
-    # Generate initial header content in temp file
     {
         echo "TAP version 13"
         echo "# V5 Test Suite Results"
         echo "# Date: $DATE_STAMP"
         echo "# Generated: $TIMESTAMP"
         echo "#"
-    } > "$TEMP_TAP_FILE"
+    } > "$DAILY_TAP_FILE"
 }
 
 # Add test suite results to daily TAP file
@@ -291,10 +248,10 @@ add_to_daily_tap() {
     local filtered_output
     filtered_output=$(echo "$bats_output" | grep -v "^1\.\.[0-9]*$")
     
-    # Get the current test count to continue numbering from temp file
+    # Get the current test count to continue numbering
     local current_test_count=0
-    if [ -f "$TEMP_TAP_FILE" ]; then
-        current_test_count=$(grep -c "^ok \|^not ok " "$TEMP_TAP_FILE" 2>/dev/null) || current_test_count=0
+    if [ -f "$DAILY_TAP_FILE" ]; then
+        current_test_count=$(grep -c "^ok \|^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || current_test_count=0
     fi
     
     # Renumber the tests to be sequential
@@ -335,7 +292,7 @@ add_to_daily_tap() {
         fi
         echo "#"
         echo "$renumbered_output"
-    } >> "$TEMP_TAP_FILE"
+    } >> "$DAILY_TAP_FILE"
 }
 
 # Finalize daily TAP file with summary
@@ -345,17 +302,17 @@ finalize_daily_tap() {
     local total_failed=0
     local overall_status="$1"
     
-    # Count tests from the temp file where we've been building content
-    total_tests=$(grep -c "^ok \|^not ok " "$TEMP_TAP_FILE" 2>/dev/null) || total_tests=0
-    total_passed=$(grep -c "^ok " "$TEMP_TAP_FILE" 2>/dev/null) || total_passed=0
-    total_failed=$(grep -c "^not ok " "$TEMP_TAP_FILE" 2>/dev/null) || total_failed=0
+    # Count tests from the daily file
+    total_tests=$(grep -c "^ok \|^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_tests=0
+    total_passed=$(grep -c "^ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_passed=0
+    total_failed=$(grep -c "^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_failed=0
     
-    # Generate the complete finalized content from temp file
-    local finalized_content
-    finalized_content=$(
-        head -5 "$TEMP_TAP_FILE"
+    # Add the test plan at the beginning (after the header comments)
+    local temp_file="${DAILY_TAP_FILE}.tmp"
+    {
+        head -5 "$DAILY_TAP_FILE"
         echo "1..$total_tests"
-        tail -n +6 "$TEMP_TAP_FILE"
+        tail -n +6 "$DAILY_TAP_FILE"
         echo "#"
         echo "# SUMMARY"
         echo "# Total Tests: $total_tests"
@@ -367,28 +324,9 @@ finalize_daily_tap() {
             echo "# Overall Status: FAILED"
         fi
         echo "# Completed: $TIMESTAMP"
-    )
+    } > "$temp_file"
     
-    # Check if the actual test content has changed (ignoring timestamps)
-    if compare_tap_content "$DAILY_TAP_FILE" "$finalized_content"; then
-        # Content is the same, don't overwrite - preserve existing file
-        if [ "$TAP_ONLY" != true ] && [ "$VERBOSE" = true ]; then
-            echo -e "${YELLOW}ℹ️  Test results unchanged, preserving existing file with original timestamp${NC}"
-        fi
-        # Clean up temp file
-        rm -f "$TEMP_TAP_FILE"
-        return 0
-    fi
-    
-    # Content has changed, write the new version
-    echo "$finalized_content" > "$DAILY_TAP_FILE"
-    
-    if [ "$TAP_ONLY" != true ] && [ "$VERBOSE" = true ]; then
-        echo -e "${CYAN}✅ TAP file updated with new test results${NC}"
-    fi
-    
-    # Clean up temp file
-    rm -f "$TEMP_TAP_FILE"
+    mv "$temp_file" "$DAILY_TAP_FILE"
 }
 
 # Check prerequisites
