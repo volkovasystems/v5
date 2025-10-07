@@ -29,6 +29,7 @@ class WindowA:
         self.target_repo = Path(target_repository).absolute()
         self.warp_dir = self.target_repo / '.warp'
         self.window_id = 'window_a'
+        self.running = True
 
         # Setup logging
         self.setup_logging()
