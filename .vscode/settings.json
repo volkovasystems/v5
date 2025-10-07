@@ -1,0 +1,53 @@
+{
+    // Python language server settings
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
+    
+    // Suppress specific warnings while keeping errors visible
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportOptionalMemberAccess": "none",
+        "reportMissingImports": "none",
+        "reportMissingModuleSource": "none",
+        "reportGeneralTypeIssues": "warning",
+        "reportUnknownMemberType": "none",
+        "reportUnknownArgumentType": "none"
+    },
+    
+    // Development-friendly settings  
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+    
+    // Allow unresolved imports in try/except blocks
+    "python.analysis.ignore": [
+        "**/venv/**",
+        "**/node_modules/**"
+    ],
+    
+    // Force Pylance to reload
+    "python.analysis.indexing": true,
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "src",
+            "depth": 10
+        }
+    ],
+    
+    // File associations and editor settings
+    "files.associations": {
+        "*.bats": "shellscript",
+        "goal.yaml": "yaml",
+        "*.yml": "yaml"
+    },
+    
+    // Editor settings for Python development
+    "editor.rulers": [88],
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Args": ["--max-line-length=88"]
+}
