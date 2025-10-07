@@ -6,16 +6,33 @@ Parses the structured goal.yaml format for optimal AI understanding
 
 import re
 import logging
-
-try:
-    import yaml
-    YAML_AVAILABLE = True
-except ImportError:
-    YAML_AVAILABLE = False
-    print("Warning: PyYAML not available. Install with: pip install PyYAML")
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
+
+# Import with graceful fallback for optional dependencies
+try:
+    import yaml  # type: ignore[import]
+    YAML_AVAILABLE = True
+except ImportError:
+    # Runtime will fail gracefully when yaml not available
+    YAML_AVAILABLE = False
+    # Create a dummy yaml object to satisfy type checker
+    class _DummyYaml:
+        """Dummy YAML class for when PyYAML is not available"""
+        
+        @staticmethod
+        def safe_load(*args, **kwargs):
+            """Dummy safe_load method"""
+            return None
+            
+        @staticmethod
+        def safe_dump(*args, **kwargs):
+            """Dummy safe_dump method"""
+            return ""
+    
+    yaml = _DummyYaml()  # type: ignore[assignment,misc]
+    print("Warning: PyYAML not available. Install with: pip install PyYAML")
 
 @dataclass
 class RepositoryGoal:
@@ -107,7 +124,7 @@ class GoalParser:
 
     def _parse_yaml_like(self, content: str) -> Optional[Dict]:
         """Parse YAML-like content"""
-        if YAML_AVAILABLE:
+        if YAML_AVAILABLE and yaml is not None:
             try:
                 # Try standard YAML parsing first
                 return yaml.safe_load(content)

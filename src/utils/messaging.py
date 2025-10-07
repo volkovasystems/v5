@@ -12,11 +12,38 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Callable, Optional, Any, Union
 
+# Import with graceful fallback for optional dependencies
 try:
-    import pika
+    import pika  # type: ignore[import]
     PIKA_AVAILABLE = True
 except ImportError:
+    # Runtime will fail gracefully when pika not available
     PIKA_AVAILABLE = False
+    # Create a dummy pika object to satisfy type checker
+    class _DummyPika:
+        """Dummy pika class for when pika is not available"""
+        
+        @staticmethod
+        def PlainCredentials(*args, **kwargs):
+            """Dummy PlainCredentials method"""
+            return None
+            
+        @staticmethod 
+        def ConnectionParameters(*args, **kwargs):
+            """Dummy ConnectionParameters method"""
+            return None
+            
+        @staticmethod
+        def BlockingConnection(*args, **kwargs):
+            """Dummy BlockingConnection method"""
+            return None
+            
+        @staticmethod
+        def BasicProperties(*args, **kwargs):
+            """Dummy BasicProperties method"""
+            return None
+    
+    pika = _DummyPika()  # type: ignore[assignment,misc]
     print("Warning: pika not available. Install with: pip install pika")
 
 class V5MessageBus:
@@ -25,11 +52,12 @@ class V5MessageBus:
     def __init__(self, config_path: Path):
         """Initialize the message bus with configuration path."""
         self.config_path = config_path
-        self.config = self.load_config()
-        self.connection = None
-        self.channel = None
+        # Initialize logger first since load_config uses it
         self.logger = logging.getLogger(f'V5MessageBus')
-        self.consumers = {}
+        self.config = self.load_config()
+        self.connection: Optional[Any] = None
+        self.channel: Optional[Any] = None
+        self.consumers: Dict[str, bool] = {}
         self.is_connected = False
 
         if PIKA_AVAILABLE:
@@ -72,13 +100,20 @@ class V5MessageBus:
             return False
 
         try:
-            if not PIKA_AVAILABLE:
-                raise ImportError("pika not available")
-                
+            # Double-check that pika module is actually available and has required methods
+            if not hasattr(pika, 'PlainCredentials') or not hasattr(pika, 'ConnectionParameters'):
+                self.logger.error("pika module missing required classes")
+                return False
+            
             credentials = pika.PlainCredentials(
                 self.config['username'],
                 self.config['password']
             )
+            
+            # Validate that credentials were created successfully
+            if credentials is None:
+                self.logger.error("Failed to create pika credentials")
+                return False
 
             parameters = pika.ConnectionParameters(
                 host=self.config['host'],
@@ -138,7 +173,7 @@ class V5MessageBus:
 
     def publish_message(
         self, exchange: str, routing_key: str,
-        message: Dict[str, Any], window_id: str = None
+        message: Dict[str, Any], window_id: Optional[str] = None
     ) -> bool:
         """Publish a message to the specified exchange and routing key."""
         if not self.is_connected or not self.channel:
@@ -177,7 +212,7 @@ class V5MessageBus:
             return False
 
     def subscribe_to_queue(
-        self, queue: str, callback: Callable, window_id: str = None
+        self, queue: str, callback: Callable, window_id: Optional[str] = None
     ) -> bool:
         """Subscribe to a message queue with callback function."""
         if not self.is_connected or not self.channel:
@@ -351,6 +386,20 @@ class WindowMessenger:
         return self.message_bus.subscribe_to_queue(queue, callback, self.window_id)
 
 # Convenience functions for offline mode
+class DummyMessageBus:
+    """Dummy message bus for offline mode compatibility"""
+    
+    def __init__(self):
+        """Initialize dummy message bus"""
+        self.is_connected = False
+        self.channel = None
+    
+    def subscribe_to_queue(
+        self, queue: str, callback: Callable, window_id: Optional[str] = None
+    ) -> bool:
+        """Dummy subscribe method"""
+        return False
+
 class OfflineMessenger:
     """Fallback messenger when RabbitMQ is not available"""
 
@@ -358,6 +407,8 @@ class OfflineMessenger:
         """Initialize the offline messenger with window ID."""
         self.window_id = window_id
         self.logger = logging.getLogger(f'OfflineMessenger-{window_id}')
+        # Add a dummy message_bus attribute for compatibility
+        self.message_bus = DummyMessageBus()
 
     def send_activity(self, activity_type: str, data: Dict) -> bool:
         """Log activity when offline"""
