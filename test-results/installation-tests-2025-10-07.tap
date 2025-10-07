@@ -1,0 +1,37 @@
+TAP version 13
+# V5 Test Suite Results
+# Date: 2025-10-07
+# Generated: 2025-10-07 22:02:51 PST
+#
+1..18
+#
+# Test Suite: installation
+# Started: 2025-10-07 22:02:51 PST
+# Completed: 2025-10-07 22:02:52 PST
+# Status: PASSED
+#
+ok 1 install.sh exists and is executable
+ok 2 get-v5.sh exists and is executable
+ok 3 v5 main executable exists and is executable
+ok 4 VERSION file exists and contains valid version
+ok 5 install.sh shows help with --help flag
+ok 6 install.sh shows version information
+ok 7 install.sh performs dependency checks
+ok 8 get-v5.sh contains proper shebang and error handling
+ok 9 install.sh creates .warp directory structure
+ok 10 v5 executable shows help
+ok 11 v5 executable shows version
+ok 12 v5 executable handles invalid arguments gracefully
+ok 13 requirements.txt contains valid Python packages
+ok 14 shell scripts pass shellcheck if available
+ok 15 Python modules compile without syntax errors
+ok 16 README.md exists and is not empty
+ok 17 LICENSE file exists
+ok 18 CHANGELOG.md exists and follows format
+#
+# SUMMARY
+# Total Tests: 18
+# Passed: 18
+# Failed: 0
+# Overall Status: PASSED
+# Completed: 2025-10-07 22:02:51 PST

@@ -129,6 +129,14 @@ V5 is a complete development productivity tool featuring:
   - Test fixtures and helper functions (`test_helper.bash`)
   - Cross-platform compatibility testing
 
+- **Descriptive TAP Output System**: Combined test results with repository integration
+  - Descriptive TAP files (`{suite-name}-YYYY-MM-DD.tap`) for clear identification
+  - Examples: `all-tests-combined-2025-10-07.tap`, `installation-tests-2025-10-07.tap`
+  - Repository-tracked test results for audit trails and compliance
+  - Combined or individual test suite results with rich metadata and timing information
+  - TAP-only mode for CI/CD integration (`--tap-only` flag)
+  - Comprehensive summary statistics and failure reporting
+
 - **Docker Test Environment**: Isolated testing containers
   - Ubuntu 22.04 base with pre-installed dependencies
   - BATS testing framework with TAP output

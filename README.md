@@ -431,6 +431,9 @@ ok 5 install.sh shows help with --help flag
 # Run with verbose output
 ./test --verbose
 
+# Run with TAP output generation (Docker)
+./test --tap
+
 # Run integration tests with RabbitMQ
 ./test --integration
 
@@ -460,10 +463,20 @@ sudo git clone https://github.com/bats-core/bats-assert.git /usr/lib/bats/bats-a
 # Run locally without Docker
 ./test --local
 
-# Run specific test file
+# Run locally with daily TAP file generation
+./test --local --tap
+
+# Run locally with TAP-only output to stdout
+./test --local --tap-only
+
+# Run specific test suite with TAP output
+./test --local --tap installation
+./test --local --tap-only core-system
+
+# Run specific test file directly with BATS
 bats tests/unit/test_core_system.bats
 
-# Run with TAP output
+# Run with TAP output using BATS directly
 bats --tap tests/integration/test_installation.bats
 ```
 
@@ -500,13 +513,15 @@ V5 includes comprehensive GitHub Actions workflows:
 
 ### Test Results and Reporting
 
-#### TAP Output Files
-Test results are saved in TAP format:
+#### Descriptive TAP Output Files
+Test results are saved with descriptive names for clarity:
 ```
 test-results/
-├── installation.tap     # Installation test results
-├── core-system.tap      # Core system test results
-└── integration.tap      # Integration test results
+├── all-tests-combined-2025-10-07.tap    # All test suites combined
+├── installation-tests-2025-10-07.tap    # Installation tests only
+├── core-system-tests-2025-10-07.tap     # Core system tests only
+├── integration-tests-2025-10-07.tap     # Integration tests only
+└── README.md                             # TAP file format documentation
 ```
 
 #### GitHub Actions Artifacts

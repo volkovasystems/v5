@@ -4,9 +4,59 @@ set -e
 # Read version from VERSION file
 VERSION="$(cat "$(dirname "${BASH_SOURCE[0]}")/VERSION" 2>/dev/null || echo "unknown")"
 
-# V5 - 5 Strategies Productive Development Tool - Installation Script
-echo "🚀 Installing V5 - 5 Strategies Productive Development Tool v$VERSION"
-echo "================================================================="
+# Handle command line flags
+case "${1:-}" in
+    "--help"|"help"|"usage")
+        echo "V5 - 5 Strategies Productive Development Tool - Installation Script v$VERSION"
+        echo "========================================================================"
+        echo ""
+        echo "Usage: $0 [options]"
+        echo ""
+        echo "Options:"
+        echo "  --help          Show this help message"
+        echo "  --version       Show version information"
+        echo "  --check-deps    Check system dependencies without installing"
+        echo "  --target=PATH   Install to specific directory (for testing)"
+        echo "  --dry-run       Show what would be installed without doing it"
+        echo ""
+        echo "This script installs V5 and its dependencies on your system."
+        echo "Supports Linux, macOS, and Windows WSL."
+        exit 0
+        ;;
+    "--version"|"version")
+        echo "Installing V5 - 5 Strategies Productive Development Tool v$VERSION"
+        exit 0
+        ;;
+    "--check-deps"|"check-deps")
+        echo "V5 Dependency Check v$VERSION"
+        echo "============================="
+        echo ""
+        # Run dependency checks without installing
+        DRY_RUN=true
+        CHECK_DEPS_ONLY=true
+        ;;
+    "--dry-run")
+        echo "V5 Dry Run Installation v$VERSION (no actual installation)"
+        echo "=========================================================="
+        DRY_RUN=true
+        ;;
+    "--target="*)
+        TARGET_DIR="${1#--target=}"
+        echo "V5 Installation to $TARGET_DIR v$VERSION"
+        echo "==========================================="
+        DRY_RUN=true
+        ;;
+    *)
+        if [[ "${1:-}" == --* ]]; then
+            echo "❌ Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+        fi
+        # Normal installation
+        echo "🚀 Installing V5 - 5 Strategies Productive Development Tool v$VERSION"
+        echo "================================================================="
+        ;;
+esac
 
 # Colors for output
 RED='\033[0;31m'
@@ -15,9 +65,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Check if we're in the v5 directory
-if [[ ! -f "v5" ]] || [[ ! -d "src" ]]; then
+# Check if we're in the v5 directory (skip for dependency check)
+if [[ "${CHECK_DEPS_ONLY:-}" != "true" ]] && { [[ ! -f "v5" ]] || [[ ! -d "src" ]]; }; then
     echo -e "${RED}❌ Error: Please run this script from the v5 directory${NC}"
+    echo "   Current directory: $(pwd)"
+    echo "   Expected files: v5 executable and src/ directory"
     exit 1
 fi
 
@@ -45,11 +97,36 @@ install_with_sudo() {
 }
 
 # Make v5 executable
-echo -e "${BLUE}🔧 Making v5 executable...${NC}"
-chmod +x v5
+if [[ "${DRY_RUN:-}" == "true" ]]; then
+    echo -e "${BLUE}🔧 [DRY RUN] Would make v5 executable${NC}"
+else
+    echo -e "${BLUE}🔧 Making v5 executable...${NC}"
+    chmod +x v5
+fi
 
 # Install Python dependencies
-echo -e "${BLUE}🐍 Installing Python dependencies...${NC}"
+if [[ "${CHECK_DEPS_ONLY:-}" == "true" ]]; then
+    echo -e "${BLUE}🐍 Checking Python dependencies...${NC}"
+    # Just check, don't install
+    if command_exists python3; then
+        echo -e "${GREEN}   ✅ Python3: Available${NC}"
+    else
+        echo -e "${YELLOW}   ⚠️  Python3: Not found${NC}"
+    fi
+    
+    if command_exists pip3; then
+        echo -e "${GREEN}   ✅ pip3: Available${NC}"
+    else
+        echo -e "${YELLOW}   ⚠️  pip3: Not found${NC}"
+    fi
+    
+    echo ""
+    echo "Dependency Check Complete"
+    echo "========================"
+    exit 0
+else
+    echo -e "${BLUE}🐍 Installing Python dependencies...${NC}"
+fi
 
 # Check Python installation
 if ! command_exists python3; then

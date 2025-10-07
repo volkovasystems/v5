@@ -120,9 +120,26 @@ except Exception as e:
 @test "window implementations exist and are valid Python" {
     skip_if_missing "python3" "python3 not available"
 
+    # Change to the test environment root where files were copied
+    cd "$TEST_TEMP_DIR" || return 1
+    
     # Test each window file exists and compiles
     for window in a b c d e; do
-        run python3 -m py_compile "../src/windows/window_${window}.py"
+        file_path="src/windows/window_${window}.py"
+        
+        # Check file exists first
+        if [ ! -f "$file_path" ]; then
+            echo "ERROR: File does not exist: $file_path in $(pwd)"
+            echo "Available files:"
+            find . -name "window_${window}.py" 2>/dev/null || echo "No window_${window}.py found"
+            return 1
+        fi
+        
+        run python3 -m py_compile "$file_path"
+        if [ "$status" -ne 0 ]; then
+            echo "Compilation failed for $file_path with output:"
+            echo "$output"
+        fi
         assert_success
     done
 }
@@ -195,13 +212,16 @@ print('Config file saved successfully')
 @test "version information is accessible from Python modules" {
     skip_if_missing "python3" "python3 not available"
 
+    # Change to the test environment root where VERSION file was copied
+    cd "$TEST_TEMP_DIR" || return 1
+
     run python3 -c "
 import sys
-sys.path.insert(0, '../src')
+sys.path.insert(0, 'src')
 from pathlib import Path
 
 # Read version from VERSION file
-version_file = Path('../VERSION')
+version_file = Path('VERSION')
 if version_file.exists():
     version = version_file.read_text().strip()
     print(f'Version from file: {version}')
@@ -232,8 +252,15 @@ sys.path.insert(0, '../src')
 
 try:
     from utils.messaging import V5MessageBus
+    from pathlib import Path
+    
+    # Create a dummy config file for testing
+    config_path = Path('.warp/communication/config.json')
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_path.write_text('{\"rabbitmq\": {\"host\": \"localhost\", \"port\": 5672}}')
+    
     # This should handle missing pika gracefully
-    bus = V5MessageBus({})
+    bus = V5MessageBus(config_path)
     connected = bus.connect()
     print(f'Connection attempt handled gracefully: {not connected}')
 except Exception as e:

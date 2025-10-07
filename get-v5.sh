@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # V5 Remote Installer - 5 Strategies Productive Development Tool
 # Usage: curl -fsSL https://raw.githubusercontent.com/volkovasystems/v5/main/get-v5.sh | bash

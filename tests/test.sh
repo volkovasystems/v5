@@ -16,6 +16,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 V5_ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 TEST_DIR="$SCRIPT_DIR"
 RESULTS_DIR="$V5_ROOT_DIR/test-results"
+DATE_STAMP="$(date '+%Y-%m-%d')"
+TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+# TAP file will be set based on test suite in generate_tap_filename()
+DAILY_TAP_FILE=""
 
 # Default options
 RUN_INTEGRATION=false
@@ -23,6 +27,9 @@ BUILD_IMAGES=false
 CLEAN_UP=false
 VERBOSE=false
 WATCH_MODE=false
+TAP_OUTPUT=false
+TAP_ONLY=false
+RUN_LOCAL=false
 
 # Help function
 show_help() {
@@ -40,6 +47,8 @@ OPTIONS:
     -v, --verbose       Verbose output
     -w, --watch         Watch mode - rebuild and retest on file changes
     --local             Run tests locally without Docker (requires BATS)
+    --tap               Generate TAP (Test Anything Protocol) output
+    --tap-only          Output only TAP format (no other output, useful for CI)
     --list              List available test suites
 
 TEST_SUITE:
@@ -54,6 +63,9 @@ EXAMPLES:
     $0 --build --clean             # Rebuild images and clean up after
     $0 installation                # Run only installation tests
     $0 --local                     # Run tests locally
+    $0 --local --tap               # Run tests locally with TAP output
+    $0 --local --tap-only installation  # Output only TAP for installation tests
+    $0 --tap --verbose             # Generate TAP reports with verbose output
     $0 --watch                     # Watch for changes and rerun tests
 
 EOF
@@ -88,8 +100,17 @@ parse_args() {
                 shift
                 ;;
             --local)
-                run_tests_local
-                exit $?
+                RUN_LOCAL=true
+                shift
+                ;;
+            --tap)
+                TAP_OUTPUT=true
+                shift
+                ;;
+            --tap-only)
+                TAP_OUTPUT=true
+                TAP_ONLY=true
+                shift
                 ;;
             --list)
                 list_test_suites
@@ -132,6 +153,182 @@ list_test_suites() {
     done
 }
 
+# Generate descriptive TAP filename based on test suite
+generate_tap_filename() {
+    local test_suite="${1:-all}"
+    local filename_base
+    
+    case "$test_suite" in
+        "installation")
+            filename_base="installation-tests"
+            ;;
+        "core-system")
+            filename_base="core-system-tests"
+            ;;
+        "integration")
+            filename_base="integration-tests"
+            ;;
+        "all")
+            filename_base="all-tests-combined"
+            ;;
+        *)
+            filename_base="${test_suite}-tests"
+            ;;
+    esac
+    
+    echo "$RESULTS_DIR/${filename_base}-${DATE_STAMP}.tap"
+}
+
+# Generate TAP output from BATS results (BATS already outputs TAP format)
+generate_tap_output() {
+    local test_suite="$1"
+    local bats_output="$2"
+    local exit_code="$3"
+    local tap_file="$RESULTS_DIR/${test_suite}.tap"
+    
+    # Create results directory if it doesn't exist
+    mkdir -p "$RESULTS_DIR"
+    
+    # BATS already outputs TAP format, so we just need to add metadata
+    {
+        echo "TAP version 13"
+        echo "# Test suite: $test_suite"
+        echo "$bats_output"
+        if [ "$exit_code" -ne 0 ]; then
+            echo "# Test suite '$test_suite' failed with exit code: $exit_code"
+        fi
+    } > "$tap_file"
+    
+    if [ "$TAP_ONLY" != true ]; then
+        echo "TAP report generated: $tap_file"
+    fi
+}
+
+# Output TAP directly (for TAP-only mode)
+output_tap_directly() {
+    local test_suite="$1"
+    local bats_output="$2"
+    local exit_code="$3"
+    
+    # Output TAP with metadata
+    echo "TAP version 13"
+    echo "# Test suite: $test_suite"
+    echo "$bats_output"
+    if [ "$exit_code" -ne 0 ]; then
+        echo "# Test suite '$test_suite' failed with exit code: $exit_code"
+    fi
+}
+
+# Initialize daily TAP file (overwrites existing file for the day)
+init_daily_tap() {
+    local test_suite="${1:-all}"
+    
+    # Generate the appropriate filename
+    DAILY_TAP_FILE=$(generate_tap_filename "$test_suite")
+    
+    mkdir -p "$RESULTS_DIR"
+    {
+        echo "TAP version 13"
+        echo "# V5 Test Suite Results"
+        echo "# Date: $DATE_STAMP"
+        echo "# Generated: $TIMESTAMP"
+        echo "#"
+    } > "$DAILY_TAP_FILE"
+}
+
+# Add test suite results to daily TAP file
+add_to_daily_tap() {
+    local test_suite="$1"
+    local bats_output="$2"
+    local exit_code="$3"
+    local test_start_time="$4"
+    local test_end_time="$5"
+    
+    # Filter out the individual test plan from BATS output and renumber tests sequentially
+    local filtered_output
+    filtered_output=$(echo "$bats_output" | grep -v "^1\.\.[0-9]*$")
+    
+    # Get the current test count to continue numbering
+    local current_test_count=0
+    if [ -f "$DAILY_TAP_FILE" ]; then
+        current_test_count=$(grep -c "^ok \|^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || current_test_count=0
+    fi
+    
+    # Renumber the tests to be sequential
+    local renumbered_output
+    renumbered_output=$(echo "$filtered_output" | awk -v offset="$current_test_count" '
+        /^(ok|not ok) [0-9]+/ {
+            # Extract the test result and description
+            result = $1
+            if ($1 == "not") {
+                result = $1 " " $2
+                desc_start = 3
+            } else {
+                desc_start = 2
+            }
+            # Get the description (everything after the test number)
+            desc = ""
+            for (i = desc_start + 1; i <= NF; i++) {
+                desc = desc " " $i
+            }
+            # Print with new sequential number
+            offset++
+            print result " " offset desc
+        }
+        !/^(ok|not ok) [0-9]+/ {
+            print
+        }
+    ')
+    
+    {
+        echo "#"
+        echo "# Test Suite: $test_suite"
+        echo "# Started: $test_start_time"
+        echo "# Completed: $test_end_time"
+        if [ "$exit_code" -ne 0 ]; then
+            echo "# Status: FAILED (exit code: $exit_code)"
+        else
+            echo "# Status: PASSED"
+        fi
+        echo "#"
+        echo "$renumbered_output"
+    } >> "$DAILY_TAP_FILE"
+}
+
+# Finalize daily TAP file with summary
+finalize_daily_tap() {
+    local total_tests=0
+    local total_passed=0
+    local total_failed=0
+    local overall_status="$1"
+    
+    # Count tests from the daily file
+    total_tests=$(grep -c "^ok \|^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_tests=0
+    total_passed=$(grep -c "^ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_passed=0
+    total_failed=$(grep -c "^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_failed=0
+    
+    # Add the test plan at the beginning (after the header comments)
+    local temp_file="${DAILY_TAP_FILE}.tmp"
+    {
+        head -5 "$DAILY_TAP_FILE"
+        echo "1..$total_tests"
+        tail -n +6 "$DAILY_TAP_FILE"
+        echo "#"
+        echo "# SUMMARY"
+        echo "# Total Tests: $total_tests"
+        echo "# Passed: $total_passed"
+        echo "# Failed: $total_failed"
+        if [ "$overall_status" -eq 0 ]; then
+            echo "# Overall Status: PASSED"
+        else
+            echo "# Overall Status: FAILED"
+        fi
+        echo "# Completed: $TIMESTAMP"
+    } > "$temp_file"
+    
+    mv "$temp_file" "$DAILY_TAP_FILE"
+}
+
 # Check prerequisites
 check_prerequisites() {
     # Check if Docker is available
@@ -153,7 +350,21 @@ check_prerequisites() {
 
 # Run tests locally (without Docker)
 run_tests_local() {
-    echo -e "${YELLOW}🧪 Running V5 tests locally${NC}"
+    # Initialize daily TAP file if TAP output is enabled
+    if [ "$TAP_OUTPUT" = true ]; then
+        init_daily_tap "${TEST_SUITE:-all}"
+    fi
+    
+    if [ "$TAP_ONLY" = true ]; then
+        # In TAP-only mode, suppress all non-TAP output
+        mkdir -p "$RESULTS_DIR" 2>/dev/null
+    elif [ "$TAP_OUTPUT" = true ]; then
+        echo -e "${YELLOW}🧪 Running V5 tests locally (TAP output enabled)${NC}"
+        echo -e "${CYAN}Daily TAP file: $(basename "$DAILY_TAP_FILE")${NC}"
+        mkdir -p "$RESULTS_DIR"
+    else
+        echo -e "${YELLOW}🧪 Running V5 tests locally${NC}"
+    fi
 
     # Check if BATS is available
     if ! command -v bats >/dev/null 2>&1; then
@@ -173,14 +384,117 @@ run_tests_local() {
 
     if [ "${TEST_SUITE:-all}" == "all" ] || \
             [ "${TEST_SUITE:-all}" == "installation" ]; then
-        echo -e "\n${CYAN}Running installation tests...${NC}"
-        bats "$TEST_DIR/integration/test_installation.bats" || exit_code=$?
+        
+        if [ "$TAP_ONLY" != true ]; then
+            echo -e "\n${CYAN}Running installation tests...${NC}"
+        fi
+        
+        local test_start_time
+        local test_end_time
+        test_start_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        
+        if [ "$TAP_OUTPUT" = true ]; then
+            # Capture BATS output for TAP conversion
+            local bats_output
+            bats_output=$(bats "$TEST_DIR/integration/test_installation.bats" 2>&1)
+            local bats_exit_code=$?
+            test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+            
+            if [ "$TAP_ONLY" = true ]; then
+                # For TAP-only mode, we'll collect all results and output at the end
+                add_to_daily_tap "installation" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+            else
+                # Add to combined TAP file
+                add_to_daily_tap "installation" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+                
+                # Also display the output if verbose
+                if [ "$VERBOSE" = true ]; then
+                    echo "$bats_output"
+                fi
+            fi
+            
+            if [ $bats_exit_code -ne 0 ]; then
+                exit_code=$bats_exit_code
+            fi
+        else
+            bats "$TEST_DIR/integration/test_installation.bats" || exit_code=$?
+            test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        fi
     fi
 
     if [ "${TEST_SUITE:-all}" == "all" ] || \
             [ "${TEST_SUITE:-all}" == "core-system" ]; then
-        echo -e "\n${CYAN}Running core system tests...${NC}"
-        bats "$TEST_DIR/unit/test_core_system.bats" || exit_code=$?
+        
+        if [ "$TAP_ONLY" != true ]; then
+            echo -e "\n${CYAN}Running core system tests...${NC}"
+        fi
+        
+        local test_start_time
+        local test_end_time
+        test_start_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        
+        if [ "$TAP_OUTPUT" = true ]; then
+            # Capture BATS output for TAP conversion
+            local bats_output
+            bats_output=$(bats "$TEST_DIR/unit/test_core_system.bats" 2>&1)
+            local bats_exit_code=$?
+            test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+            
+            if [ "$TAP_ONLY" = true ]; then
+                # For TAP-only mode, we'll collect all results and output at the end
+                add_to_daily_tap "core-system" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+            else
+                # Add to combined TAP file
+                add_to_daily_tap "core-system" "$bats_output" "$bats_exit_code" "$test_start_time" "$test_end_time"
+                
+                # Also display the output if verbose
+                if [ "$VERBOSE" = true ]; then
+                    echo "$bats_output"
+                fi
+            fi
+            
+            if [ $bats_exit_code -ne 0 ]; then
+                exit_code=$bats_exit_code
+            fi
+        else
+            bats "$TEST_DIR/unit/test_core_system.bats" || exit_code=$?
+            test_end_time="$(date '+%Y-%m-%d %H:%M:%S %Z')"
+        fi
+    fi
+
+    # Finalize combined TAP file and display summary
+    if [ "$TAP_OUTPUT" = true ]; then
+        # Finalize the combined TAP file
+        finalize_daily_tap "$exit_code"
+        
+        if [ "$TAP_ONLY" = true ]; then
+            # In TAP-only mode, output the complete daily TAP file
+            cat "$DAILY_TAP_FILE"
+        else
+            # Display summary for regular TAP mode
+            echo -e "\n${BLUE}📊 Daily TAP Report Generated:${NC}"
+            echo "==================================="
+            
+            local total_tests
+            local total_passed
+            local total_failed
+            
+            total_tests=$(grep -c "^ok \|^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_tests=0
+            total_passed=$(grep -c "^ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_passed=0
+            total_failed=$(grep -c "^not ok " "$DAILY_TAP_FILE" 2>/dev/null) || total_failed=0
+            
+            if [ "$total_failed" -eq 0 ] && [ "$total_tests" -gt 0 ]; then
+                echo -e "${GREEN}✅ All Tests: $total_passed/$total_tests passed${NC}"
+            elif [ "$total_tests" -gt 0 ]; then
+                echo -e "${RED}❌ Tests: $total_passed/$total_tests passed, $total_failed failed${NC}"
+            else
+                echo -e "${YELLOW}⚠️  No tests found${NC}"
+            fi
+            
+            echo -e "${CYAN}TAP File: $(realpath "$DAILY_TAP_FILE")${NC}"
+            echo -e "${CYAN}Date: $DATE_STAMP${NC}"
+            echo -e "${CYAN}File Size: $(du -h "$DAILY_TAP_FILE" | cut -f1)${NC}"
+        fi
     fi
 
     return $exit_code
@@ -211,8 +525,15 @@ run_docker_tests() {
     else
         echo -e "${BLUE}🧪 Running V5 tests in isolated Docker environment...${NC}"
     fi
+    
+    if [ "$TAP_OUTPUT" = true ]; then
+        echo -e "${YELLOW}TAP output will be generated${NC}"
+    fi
 
     cd "$SCRIPT_DIR"
+    
+    # Set environment variables for Docker
+    export GENERATE_TAP="$TAP_OUTPUT"
 
     # Start services
     if [ "$VERBOSE" = true ]; then
@@ -320,6 +641,12 @@ main() {
     # Parse arguments
     parse_args "$@"
 
+    # Handle local test execution
+    if [ "$RUN_LOCAL" = true ]; then
+        run_tests_local
+        exit $?
+    fi
+
     echo -e "${BLUE}🚀 V5 Test Runner${NC}"
     echo "=================="
 
@@ -344,6 +671,15 @@ main() {
     # Clean up if requested
     if [ "$CLEAN_UP" = true ]; then
         cleanup_docker
+    fi
+
+    # Finalize daily TAP file for Docker tests if TAP output enabled
+    if [ "$TAP_OUTPUT" = true ]; then
+        # For Docker tests, we should also try to finalize if possible
+        # This is a best effort as the TAP file might be in containers
+        if [ -f "$DAILY_TAP_FILE" ]; then
+            finalize_daily_tap "$exit_code"
+        fi
     fi
 
     # Final status

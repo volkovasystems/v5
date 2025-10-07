@@ -1,0 +1,32 @@
+TAP version 13
+# V5 Test Suite Results
+# Date: 2025-10-07
+# Generated: 2025-10-07 21:59:25 PST
+#
+1..13
+#
+# Test Suite: core-system
+# Started: 2025-10-07 21:59:25 PST
+# Completed: 2025-10-07 21:59:27 PST
+# Status: PASSED
+#
+ok 1 Python modules can be imported successfully
+ok 2 messaging module imports without pika dependency
+ok 3 goal parser handles valid YAML goal files
+ok 4 goal parser validates request alignment
+ok 5 V5System initializes with valid repository
+ok 6 window implementations exist and are valid Python
+ok 7 goal YAML file structure is valid
+ok 8 .warp directory structure is created correctly
+ok 9 messaging configuration can be created
+ok 10 version information is accessible from Python modules
+ok 11 error handling works without crashing
+ok 12 goal summary generation works correctly
+ok 13 Python path and imports work in isolated environment
+#
+# SUMMARY
+# Total Tests: 13
+# Passed: 13
+# Failed: 0
+# Overall Status: PASSED
+# Completed: 2025-10-07 21:59:25 PST

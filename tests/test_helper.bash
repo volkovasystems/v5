@@ -10,19 +10,80 @@ export TEST_TEMP_DIR="${BATS_TMPDIR}/v5_test_$$"
 setup_v5_test_env() {
     # Create isolated test directory
     mkdir -p "$TEST_TEMP_DIR"
-    cd "$TEST_TEMP_DIR" || return
+    
+    # Find the V5 project root (go up from tests directory)
+    # Handle both cases: when running from project root and from tests directory
+    if [ -n "${BATS_TEST_DIRNAME:-}" ]; then
+        # BATS_TEST_DIRNAME could be tests/integration or tests/unit
+        # Check if we need to go up one level (from tests) or two levels (from tests/subdir)
+        if [ -f "$BATS_TEST_DIRNAME/../v5" ] && [ -f "$BATS_TEST_DIRNAME/../VERSION" ]; then
+            V5_PROJECT_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
+        elif [ -f "$BATS_TEST_DIRNAME/../../v5" ] && [ -f "$BATS_TEST_DIRNAME/../../VERSION" ]; then
+            V5_PROJECT_ROOT="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+        else
+            echo "Error: Could not locate V5 project root from BATS_TEST_DIRNAME=$BATS_TEST_DIRNAME"
+            return 1
+        fi
+    else
+        # Fallback: assume we're in project root or tests directory
+        if [ -f "v5" ] && [ -f "VERSION" ]; then
+            V5_PROJECT_ROOT="$(pwd)"
+        elif [ -f "../v5" ] && [ -f "../VERSION" ]; then
+            V5_PROJECT_ROOT="$(cd .. && pwd)"
+        else
+            echo "Error: Could not locate V5 project root from $(pwd)"
+            return 1
+        fi
+    fi
+    
+    # Verify we found the right directory
+    if [ ! -f "$V5_PROJECT_ROOT/v5" ] || [ ! -f "$V5_PROJECT_ROOT/VERSION" ]; then
+        echo "Error: Could not locate V5 project root. Looking in: $V5_PROJECT_ROOT"
+        echo "Contents:"
+        ls -la "$V5_PROJECT_ROOT" 2>/dev/null || echo "Directory not accessible"
+        echo "BATS_TEST_DIRNAME: ${BATS_TEST_DIRNAME:-unset}"
+        echo "Current directory: $(pwd)"
+        return 1
+    fi
+    
+    cd "$TEST_TEMP_DIR" || return 1
 
-    # Copy V5 files to test environment
-    cp -r "$BATS_TEST_DIRNAME/../"* . 2>/dev/null || true
+    # Copy essential files individually to avoid glob expansion issues
+    cp "$V5_PROJECT_ROOT/v5" . 2>/dev/null || echo "Warning: Could not copy v5"
+    cp "$V5_PROJECT_ROOT/VERSION" . 2>/dev/null || echo "Warning: Could not copy VERSION"
+    cp "$V5_PROJECT_ROOT/README.md" . 2>/dev/null || echo "Warning: Could not copy README.md"
+    cp "$V5_PROJECT_ROOT/LICENSE" . 2>/dev/null || echo "Warning: Could not copy LICENSE"
+    cp "$V5_PROJECT_ROOT/CHANGELOG.md" . 2>/dev/null || echo "Warning: Could not copy CHANGELOG.md"
+    cp "$V5_PROJECT_ROOT/requirements.txt" . 2>/dev/null || echo "Warning: Could not copy requirements.txt"
+    cp "$V5_PROJECT_ROOT/pyproject.toml" . 2>/dev/null || echo "Warning: Could not copy pyproject.toml"
+    
+    # Copy shell scripts
+    cp "$V5_PROJECT_ROOT/install.sh" . 2>/dev/null || echo "Warning: Could not copy install.sh"
+    cp "$V5_PROJECT_ROOT/get-v5.sh" . 2>/dev/null || echo "Warning: Could not copy get-v5.sh"
+    cp "$V5_PROJECT_ROOT/test" . 2>/dev/null || echo "Warning: Could not copy test script"
+    
+    # Copy source directory
+    if [ -d "$V5_PROJECT_ROOT/src" ]; then
+        cp -r "$V5_PROJECT_ROOT/src" . || echo "Warning: Could not copy src directory"
+    else
+        echo "Warning: src directory not found in $V5_PROJECT_ROOT"
+    fi
+    
+    # Copy tests directory (for completeness)
+    if [ -d "$V5_PROJECT_ROOT/tests" ]; then
+        cp -r "$V5_PROJECT_ROOT/tests" . 2>/dev/null || echo "Warning: Could not copy tests directory"
+    fi
 
-    # Ensure executables are available
-    chmod +x v5 install.sh get-v5.sh 2>/dev/null || true
+    # Ensure executables have correct permissions
+    chmod +x v5 install.sh get-v5.sh test 2>/dev/null || true
 
     # Set up Python path
-    export PYTHONPATH="$TEST_TEMP_DIR/src:$PYTHONPATH"
+    export PYTHONPATH="$TEST_TEMP_DIR/src:${PYTHONPATH:-}"
 
     # Create test repository structure
     mkdir -p test_repo/.warp/{protocols,communication,logs}
+    
+    # Test environment setup complete
 }
 
 # Cleanup test environment
