@@ -72,6 +72,9 @@ class V5MessageBus:
             return False
 
         try:
+            if not PIKA_AVAILABLE:
+                raise ImportError("pika not available")
+                
             credentials = pika.PlainCredentials(
                 self.config['username'],
                 self.config['password']
@@ -153,6 +156,9 @@ class V5MessageBus:
                 'data': message
             }
 
+            if not PIKA_AVAILABLE:
+                return False
+                
             self.channel.basic_publish(
                 exchange=exchange,
                 routing_key=routing_key,
@@ -398,3 +404,21 @@ def create_messenger(window_id: str, config_path: Path) -> WindowMessenger:
             return OfflineMessenger(window_id)
     except Exception:
         return OfflineMessenger(window_id)
+
+
+def create_default_config() -> Dict[str, Any]:
+    """Create default RabbitMQ configuration for testing."""
+    return {
+        "host": "localhost",
+        "port": 5672,
+        "virtual_host": "/",
+        "username": "guest",
+        "password": "guest",
+        "exchanges": {
+            "window.activities": "topic",
+            "code.changes": "topic",
+            "protocol.updates": "topic",
+            "governance.reviews": "topic",
+            "feature.insights": "topic"
+        }
+    }

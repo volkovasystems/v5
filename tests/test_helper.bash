@@ -9,7 +9,7 @@ export TEST_TEMP_DIR="${BATS_TMPDIR}/v5_test_$$"
 setup_v5_test_env() {
     # Create isolated test directory
     mkdir -p "$TEST_TEMP_DIR"
-    cd "$TEST_TEMP_DIR"
+    cd "$TEST_TEMP_DIR" || return
 
     # Copy V5 files to test environment
     cp -r "$BATS_TEST_DIRNAME/../"* . 2>/dev/null || true
@@ -26,7 +26,7 @@ setup_v5_test_env() {
 
 # Cleanup test environment
 teardown_v5_test_env() {
-    cd "$BATS_TEST_DIRNAME"
+    cd "$BATS_TEST_DIRNAME" || return
     rm -rf "$TEST_TEMP_DIR" 2>/dev/null || true
 }
 
@@ -41,12 +41,12 @@ wait_for_process() {
     local timeout="${2:-10}"
     local count=0
 
-    while [ $count -lt $timeout ]; do
+    while [ "$count" -lt "$timeout" ]; do
         if ! kill -0 "$pid" 2>/dev/null; then
             return 0
         fi
         sleep 1
-        ((count++))
+        count=$((count + 1))
     done
     return 1
 }
@@ -90,6 +90,7 @@ EOF
 # Assert output contains expected string
 assert_output_contains() {
     local expected="$1"
+    # shellcheck disable=SC2154
     if [[ "$output" != *"$expected"* ]]; then
         echo "Expected output to contain: $expected"
         echo "Actual output: $output"
@@ -117,6 +118,7 @@ assert_dir_exists() {
 
 # Assert command succeeds
 assert_success() {
+    # shellcheck disable=SC2154
     if [ "$status" -ne 0 ]; then
         echo "Expected command to succeed but got status: $status"
         echo "Output: $output"
@@ -126,6 +128,7 @@ assert_success() {
 
 # Assert command fails
 assert_failure() {
+    # shellcheck disable=SC2154
     if [ "$status" -eq 0 ]; then
         echo "Expected command to fail but it succeeded"
         echo "Output: $output"

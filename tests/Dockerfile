@@ -36,7 +36,7 @@ RUN git clone https://github.com/bats-core/bats-support.git /usr/lib/bats/bats-s
 RUN apt-get update && apt-get install -y \
     rabbitmq-server \
     && rm -rf /var/lib/apt/lists/* \
-    && systemctl disable rabbitmq-server
+    && update-rc.d rabbitmq-server disable
 
 # Create test user and directories
 RUN useradd -m -s /bin/bash tester \

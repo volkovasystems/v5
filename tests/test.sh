@@ -231,7 +231,7 @@ run_docker_tests() {
         docker cp "$container_id:/app/test-results/." "$RESULTS_DIR/" 2>/dev/null || true
 
         # Display results summary
-        if [ -d "$RESULTS_DIR" ] && [ "$(ls -A "$RESULTS_DIR"/*.tap 2>/dev/null)" ]; then
+        if [ -d "$RESULTS_DIR" ] && [ -n "$(find "$RESULTS_DIR" -name "*.tap" 2>/dev/null)" ]; then
             echo -e "\n${BLUE}📊 Test Results Summary:${NC}"
             echo "========================"
 
@@ -266,6 +266,7 @@ cleanup_docker() {
     # Remove test images
     images=$(docker images -q -f "label=description=V5 BATS Testing Environment")
     if [ -n "$images" ]; then
+        # shellcheck disable=SC2086
         docker rmi $images 2>/dev/null || true
     fi
 

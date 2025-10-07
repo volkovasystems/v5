@@ -183,7 +183,7 @@ print(f'Default host: {config.get(\"host\", \"missing\")}')
 
 # Save config to test location
 with open('.warp/communication/config.json', 'w') as f:
-    json.dump(config, f, indent=2)
+    json.dump({'rabbitmq': config}, f, indent=2)
 
 print('Config file saved successfully')
 "
