@@ -18,13 +18,13 @@ Generate daily, combined TAP output files alongside regular test output:
 
 # Generate daily TAP file for specific test suite
 ./test --local --tap installation
-./test --local --tap core-system
+./test --local --tap core-tool
 ```
 
 Descriptive TAP files are saved in the `test-results/` directory:
 - `test-results/all-tests-combined-2025-10-07.tap` - All test suites combined
 - `test-results/installation-tests-2025-10-07.tap` - Installation tests only
-- `test-results/core-system-tests-2025-10-07.tap` - Core system tests only
+- `test-results/core-tool-tests-2025-10-07.tap` - Core tool tests only
 - Each file contains results from the specified test suite(s) with timing information
 - Running the same test suite multiple times on the same day overwrites that specific file
 
@@ -38,7 +38,7 @@ Output only TAP format to stdout (useful for CI integration):
 
 # Output only TAP format for specific test suite
 ./test --local --tap-only installation
-./test --local --tap-only core-system
+./test --local --tap-only core-tool
 ```
 
 This mode suppresses all other output and only prints TAP-formatted results to stdout.
@@ -63,14 +63,14 @@ ok 1 install.sh exists and is executable
 ok 2 get-v5.sh exists and is executable
 # ... more installation tests
 #
-# Test Suite: core-system
+# Test Suite: core-tool
 # Started: 2025-10-07 13:04:35 PST
 # Completed: 2025-10-07 13:04:37 PST
 # Status: PASSED
 #
 1..13
 ok 1 Python modules can be imported successfully
-# ... more core-system tests
+# ... more core-tool tests
 #
 # SUMMARY
 # Total Tests: 31
@@ -150,7 +150,7 @@ test:
 - Examples:
   - `test-results/all-tests-combined-2025-10-07.tap` - All test suites combined
   - `test-results/installation-tests-2025-10-07.tap` - Installation tests only
-  - `test-results/core-system-tests-2025-10-07.tap` - Core system tests only
+  - `test-results/core-tool-tests-2025-10-07.tap` - Core tool tests only
 - Files include comprehensive metadata, timing, and summary information
 
 ## Automatic Timestamp Preservation
