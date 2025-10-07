@@ -11,6 +11,3 @@ watchdog>=3.0.0
 
 # YAML parsing for goal.txt
 PyYAML>=6.0
-
-# Development utilities (optional)
-colorama>=0.4.6

@@ -16,13 +16,6 @@ A productive development tool that transforms how you code using five specialize
 - **Window D**: Governance QA Auditor (Standards Guardian)
 - **Window E**: Feature Insight Documentarian (Strategic Intelligence)
 
-## ⚙️ Configuration
-
-**Before Distribution**: Update the repository URL in `get-v5.sh`:
-```bash
-REPO_URL="https://github.com/volkovasystems/v5"
-```
-
 ## 🚀 Installation
 
 ### Supported Platforms
@@ -146,12 +139,17 @@ v5 /path/to/your/project start
 
 ```bash
 ./v5 <repository_path> [command]
+./v5 --version  # Show version information
 
 Commands:
-  init   - Initialize repository with V5 structure
-  start  - Start the V5 tool (default)
-  stop   - Stop all V5 windows
-  status - Check tool status
+  init     - Initialize repository with V5 structure
+  start    - Start the V5 tool (default)
+  stop     - Stop all V5 windows
+  status   - Check tool status
+  version  - Show version information
+  
+Options:
+  --version, -v  - Show version and exit
 ```
 
 ## 🏗️ Architecture Overview

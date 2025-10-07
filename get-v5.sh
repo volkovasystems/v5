@@ -17,7 +17,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration - IMPORTANT: Update this URL before distribution
+# Configuration
 REPO_URL="https://github.com/volkovasystems/v5"
 INSTALL_DIR="$HOME/.local/share/v5"
 BIN_DIR="$HOME/.local/bin"
