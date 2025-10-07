@@ -1,0 +1,16 @@
+# V5 Development Automation Tool Dependencies
+
+# Core messaging system
+pika>=1.3.0
+
+# System monitoring
+psutil>=5.9.0
+
+# File system monitoring
+watchdog>=3.0.0
+
+# YAML parsing for goal.txt
+PyYAML>=6.0
+
+# Development utilities (optional)
+colorama>=0.4.6
