@@ -524,6 +524,25 @@ test-results/
 └── README.md                             # TAP file format documentation
 ```
 
+#### Automatic Timestamp Preservation
+
+V5 intelligently manages TAP files to prevent meaningless repository changes:
+
+- **Timestamp Detection**: Automatically identifies when only timestamps have changed
+- **Smart Reversion**: Reverts files with only timestamp differences (Generated, Started, Completed)
+- **Meaningful Preservation**: Keeps files with actual test changes (new tests, different results)
+- **Clean Repository**: Prevents commit noise from routine test runs
+- **User Feedback**: Shows when timestamp-only changes are automatically reverted
+
+```bash
+# Example: Run tests multiple times
+./test --local --tap installation
+⏰ Only timestamps changed, reverted to preserve original timestamps
+
+# Only meaningful changes create diffs
+git status  # Clean - no TAP file modifications shown
+```
+
 #### GitHub Actions Artifacts
 - Test result TAP files
 - Docker container logs (on failure)

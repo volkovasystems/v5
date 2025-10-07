@@ -153,6 +153,38 @@ test:
   - `test-results/core-system-tests-2025-10-07.tap` - Core system tests only
 - Files include comprehensive metadata, timing, and summary information
 
+## Automatic Timestamp Preservation
+
+V5 includes intelligent timestamp management to keep your repository clean and prevent meaningless diffs:
+
+### How It Works
+
+When tests complete, the system automatically analyzes TAP files for changes:
+
+1. **Detects timestamp-only changes** in fields like `Generated:`, `Started:`, and `Completed:`
+2. **Preserves meaningful changes** like new tests, different results, or modified test counts
+3. **Automatically reverts files** that only have timestamp differences
+4. **Provides feedback** when timestamp-only changes are reverted
+
+### Example Behavior
+
+```bash
+# Run tests multiple times - only timestamps change
+./test --local --tap installation
+⏰ Only timestamps changed, reverted to preserve original timestamps
+
+# Add a new test - meaningful changes are preserved
+./test --local --tap installation
+💾 TAP file contains meaningful changes, keeping updated version
+```
+
+### Benefits
+
+- **Clean Repository**: No commit noise from routine test runs
+- **Focused Diffs**: Only see actual test changes in git diffs
+- **Audit Trail**: Meaningful test changes are still tracked
+- **Automatic**: No manual intervention required
+
 ## Features
 
 - **Descriptive Names**: File names clearly indicate which test suite was executed
@@ -161,3 +193,4 @@ test:
 - **Rich Metadata**: Includes start/end times, test suite status, and summary statistics
 - **Repository Integration**: Files are tracked in the repository for historical analysis
 - **Compliance Ready**: TAP format suitable for audit trails and compliance requirements
+- **Timestamp Preservation**: Automatic reversion of timestamp-only changes to keep repository clean

@@ -137,6 +137,13 @@ V5 is a complete development productivity tool featuring:
   - TAP-only mode for CI/CD integration (`--tap-only` flag)
   - Comprehensive summary statistics and failure reporting
 
+- **Automatic Timestamp Preservation**: Intelligent diff management for TAP files
+  - `check_and_revert_timestamp_only_changes()` function prevents meaningless timestamp diffs
+  - Automatically reverts TAP files when only timestamps have changed (Generated, Started, Completed)
+  - Preserves files with meaningful changes (new tests, changed results, different test counts)
+  - Keeps repository clean by preventing commit noise from routine test runs
+  - Provides user feedback when timestamp-only changes are automatically reverted
+
 - **Docker Test Environment**: Isolated testing containers
   - Ubuntu 22.04 base with pre-installed dependencies
   - BATS testing framework with TAP output
