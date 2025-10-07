@@ -59,31 +59,20 @@ RUN /home/tester/venv/bin/pip install --upgrade pip \
     && /home/tester/venv/bin/pip install -r /tmp/requirements.txt \
     && rm /tmp/requirements.txt
 
-# Create test runner script
-RUN cat > /usr/local/bin/run-v5-tests << 'EOF'
+# Create test runner script (using COPY approach for VS Code compatibility)
+COPY <<'SCRIPT' /usr/local/bin/run-v5-tests
 #!/bin/bash
 set -euo pipefail
-
 echo "V5 BATS Test Suite Runner"
 echo "========================="
-
-# Activate Python virtual environment
 source /home/tester/venv/bin/activate
-
-# Change to app directory
 cd /app/v5
-
-# Export test environment variables
 export PATH="/home/tester/venv/bin:$PATH"
 export BATS_LIB_PATH="/usr/lib/bats"
-
-# Function to run test suite
 run_test_suite() {
     local suite_name="$1"
     local test_file="$2"
-    
     echo "Running $suite_name tests..."
-    
     if bats --tap "$test_file" > "/app/test-results/${suite_name}.tap" 2>&1; then
         echo "PASSED: $suite_name tests"
         return 0
@@ -93,26 +82,15 @@ run_test_suite() {
         return 1
     fi
 }
-
-# Initialize results directory
 mkdir -p /app/test-results
 rm -f /app/test-results/*.tap
-
-# Run test suites
 failures=0
-
-# Installation tests
 if [ -f "tests/integration/test_installation.bats" ]; then
-    run_test_suite "installation" \
-        "tests/integration/test_installation.bats" || ((failures++))
+    run_test_suite "installation" "tests/integration/test_installation.bats" || ((failures++))
 fi
-
-# Core system tests  
 if [ -f "tests/unit/test_core_system.bats" ]; then
     run_test_suite "core-system" "tests/unit/test_core_system.bats" || ((failures++))
 fi
-
-# Run any additional test files found
 for test_file in tests/unit/*.bats tests/integration/*.bats; do
     if [ -f "$test_file" ]; then
         case "$test_file" in
@@ -125,23 +103,17 @@ for test_file in tests/unit/*.bats tests/integration/*.bats; do
         esac
     fi
 done
-
-# Generate summary report
 echo "Test Results Summary"
 echo "===================="
-
 total_tests=0
 passed_tests=0
-
 for tap_file in /app/test-results/*.tap; do
     if [ -f "$tap_file" ]; then
         suite=$(basename "$tap_file" .tap)
         tests=$(grep -c "^ok\|^not ok" "$tap_file" 2>/dev/null || echo "0")
         passed=$(grep -c "^ok " "$tap_file" 2>/dev/null || echo "0")
-        
         total_tests=$((total_tests + tests))
         passed_tests=$((passed_tests + passed))
-        
         if [ "$tests" -eq "$passed" ] && [ "$tests" -gt 0 ]; then
             echo "PASS: $suite: $passed/$tests tests passed"
         else
@@ -149,7 +121,6 @@ for tap_file in /app/test-results/*.tap; do
         fi
     fi
 done
-
 echo "------------------------"
 if [ "$failures" -eq 0 ] && [ "$total_tests" -gt 0 ]; then
     echo "ALL TESTS PASSED: $passed_tests/$total_tests"
@@ -158,32 +129,26 @@ else
     echo "TESTS FAILED: $passed_tests/$total_tests passed, $failures suites failed"
     exit 1
 fi
-EOF
+SCRIPT
 
 # Make test runner executable
 RUN chmod +x /usr/local/bin/run-v5-tests
 
-# Create entrypoint script
-RUN cat > /docker-entrypoint.sh << 'EOF'
+# Create entrypoint script (using COPY approach for VS Code compatibility)
+COPY <<'ENTRYPOINT' /docker-entrypoint.sh
 #!/bin/bash
 set -e
-
-# Start RabbitMQ in background if needed for integration tests
 if [ "${START_RABBITMQ:-false}" = "true" ]; then
     service rabbitmq-server start
     sleep 5
 fi
-
-# Change ownership of app directory to tester
 chown -R tester:tester /app
-
-# Switch to tester user and run command
 if [ "$#" -eq 0 ]; then
     exec su tester -c "run-v5-tests"
 else
     exec su tester -c "$*"
 fi
-EOF
+ENTRYPOINT
 
 RUN chmod +x /docker-entrypoint.sh
 

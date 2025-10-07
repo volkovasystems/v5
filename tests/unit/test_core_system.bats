@@ -5,7 +5,7 @@ load "../test_helper"
 
 setup() {
     setup_v5_test_env
-    cd test_repo
+    cd test_repo || exit 1
     create_test_goal "Test development project"
 }
 

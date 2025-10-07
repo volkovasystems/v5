@@ -155,8 +155,8 @@ teardown() {
     run wc -l README.md
     assert_success
     # Should have at least 50 lines of content
-    lines=$(echo "$output" | awk '{print $1}')
-    [ "$lines" -gt 50 ]
+    line_count=$(echo "$output" | awk '{print $1}')
+    [ "$line_count" -gt 50 ]
 }
 
 @test "LICENSE file exists" {
