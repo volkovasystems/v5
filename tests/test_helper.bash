@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # test_helper.bash - Common helper functions for V5 BATS tests
+set -euo pipefail
 
 # Test configuration
 export BATS_TEST_TIMEOUT=30

@@ -108,7 +108,8 @@ failures=0
 
 # Installation tests
 if [ -f "tests/integration/test_installation.bats" ]; then
-    run_test_suite "installation" "tests/integration/test_installation.bats" || ((failures++))
+    run_test_suite "installation" \
+        "tests/integration/test_installation.bats" || ((failures++))
 fi
 
 # Core system tests  
@@ -118,7 +119,9 @@ fi
 
 # Run any additional test files found
 for test_file in tests/unit/*.bats tests/integration/*.bats; do
-    if [ -f "$test_file" ] && [[ "$test_file" != *"test_installation.bats" ]] && [[ "$test_file" != *"test_core_system.bats" ]]; then
+    if [ -f "$test_file" ] && \
+            [[ "$test_file" != *"test_installation.bats" ]] && \
+            [[ "$test_file" != *"test_core_system.bats" ]]; then
         suite_name=$(basename "$test_file" .bats)
         run_test_suite "$suite_name" "$test_file" || ((failures++))
     fi
@@ -153,7 +156,8 @@ if [ "$failures" -eq 0 ] && [ "$total_tests" -gt 0 ]; then
     echo -e "${GREEN}🎉 ALL TESTS PASSED: $passed_tests/$total_tests${NC}"
     exit 0
 else
-    echo -e "${RED}💥 TESTS FAILED: $passed_tests/$total_tests passed, $failures suites failed${NC}"
+    echo -e "${RED}💥 TESTS FAILED: $passed_tests/$total_tests passed, \
+$failures suites failed${NC}"
     exit 1
 fi
 EOF

@@ -141,7 +141,8 @@ check_prerequisites() {
     fi
 
     # Check if Docker Compose is available
-    if ! command -v docker-compose >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
+    if ! command -v docker-compose >/dev/null 2>&1 && \
+            ! docker compose version >/dev/null 2>&1; then
         echo -e "${RED}❌ Docker Compose is required but not installed${NC}" >&2
         exit 1
     fi
@@ -170,12 +171,14 @@ run_tests_local() {
     # Run tests
     local exit_code=0
 
-    if [ "${TEST_SUITE:-all}" == "all" ] || [ "${TEST_SUITE:-all}" == "installation" ]; then
+    if [ "${TEST_SUITE:-all}" == "all" ] || \
+            [ "${TEST_SUITE:-all}" == "installation" ]; then
         echo -e "\n${CYAN}Running installation tests...${NC}"
         bats "$TEST_DIR/integration/test_installation.bats" || exit_code=$?
     fi
 
-    if [ "${TEST_SUITE:-all}" == "all" ] || [ "${TEST_SUITE:-all}" == "core-system" ]; then
+    if [ "${TEST_SUITE:-all}" == "all" ] || \
+            [ "${TEST_SUITE:-all}" == "core-system" ]; then
         echo -e "\n${CYAN}Running core system tests...${NC}"
         bats "$TEST_DIR/unit/test_core_system.bats" || exit_code=$?
     fi
@@ -213,9 +216,11 @@ run_docker_tests() {
 
     # Start services
     if [ "$VERBOSE" = true ]; then
-        docker-compose -f docker-compose.test.yml up --abort-on-container-exit "$service_name"
+        docker-compose -f docker-compose.test.yml up \
+            --abort-on-container-exit "$service_name"
     else
-        docker-compose -f docker-compose.test.yml up --abort-on-container-exit "$service_name" 2>/dev/null
+        docker-compose -f docker-compose.test.yml up \
+            --abort-on-container-exit "$service_name" 2>/dev/null
     fi
 
     local exit_code=$?
@@ -224,14 +229,17 @@ run_docker_tests() {
     echo -e "\n${CYAN}📋 Copying test results...${NC}"
 
     # Get container ID
-    container_id=$(docker-compose -f docker-compose.test.yml ps -q "$service_name" 2>/dev/null | head -n 1)
+    container_id=$(docker-compose -f docker-compose.test.yml ps -q \
+        "$service_name" 2>/dev/null | head -n 1)
 
     if [ -n "$container_id" ]; then
         # Copy results from container
-        docker cp "$container_id:/app/test-results/." "$RESULTS_DIR/" 2>/dev/null || true
+        docker cp "$container_id:/app/test-results/." "$RESULTS_DIR/" \
+            2>/dev/null || true
 
         # Display results summary
-        if [ -d "$RESULTS_DIR" ] && [ -n "$(find "$RESULTS_DIR" -name "*.tap" 2>/dev/null)" ]; then
+        if [ -d "$RESULTS_DIR" ] && \
+                [ -n "$(find "$RESULTS_DIR" -name "*.tap" 2>/dev/null)" ]; then
             echo -e "\n${BLUE}📊 Test Results Summary:${NC}"
             echo "========================"
 
@@ -261,7 +269,8 @@ cleanup_docker() {
     cd "$SCRIPT_DIR"
 
     # Stop and remove containers
-    docker-compose -f docker-compose.test.yml down --volumes --remove-orphans 2>/dev/null || true
+    docker-compose -f docker-compose.test.yml down \
+        --volumes --remove-orphans 2>/dev/null || true
 
     # Remove test images
     images=$(docker images -q -f "label=description=V5 BATS Testing Environment")
@@ -286,7 +295,8 @@ watch_mode() {
             # Watch for changes in source files and test files
             inotifywait -r -e modify,create,delete \
                 --exclude="\.git|__pycache__|\.pyc$|test-results" \
-                "$V5_ROOT_DIR/src" "$SCRIPT_DIR" "$V5_ROOT_DIR"/*.sh 2>/dev/null || break
+                "$V5_ROOT_DIR/src" "$SCRIPT_DIR" \
+                "$V5_ROOT_DIR"/*.sh 2>/dev/null || break
 
             echo -e "${YELLOW}🔄 Files changed, rebuilding and running tests...${NC}"
 

@@ -10,7 +10,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Callable, Optional, Any
+from typing import Dict, Callable, Optional, Any, Union
 
 try:
     import pika
@@ -104,7 +104,7 @@ class V5MessageBus:
             self.is_connected = False
             return False
 
-    def setup_exchanges(self):
+    def setup_exchanges(self) -> None:
         """Setup RabbitMQ exchanges and queues"""
         if not self.is_connected or not self.channel:
             return
@@ -139,7 +139,7 @@ class V5MessageBus:
     def publish_message(
         self, exchange: str, routing_key: str,
         message: Dict[str, Any], window_id: str = None
-    ):
+    ) -> bool:
         """Publish a message to the specified exchange and routing key."""
         if not self.is_connected or not self.channel:
             self.logger.warning(
@@ -178,7 +178,7 @@ class V5MessageBus:
 
     def subscribe_to_queue(
         self, queue: str, callback: Callable, window_id: str = None
-    ):
+    ) -> bool:
         """Subscribe to a message queue with callback function."""
         if not self.is_connected or not self.channel:
             self.logger.warning(
@@ -186,7 +186,7 @@ class V5MessageBus:
             )
             return False
 
-        def message_handler(ch, method, properties, body):
+        def message_handler(ch, method, properties, body) -> None:
             """Handle incoming message from queue"""
             try:
                 message = json.loads(body)
@@ -210,7 +210,7 @@ class V5MessageBus:
             self.logger.error(f"Failed to subscribe to queue {queue}: {e}")
             return False
 
-    def start_consuming(self, blocking=True):
+    def start_consuming(self, blocking: bool = True) -> None:
         """Start consuming messages"""
         if not self.is_connected or not self.channel:
             return
@@ -224,7 +224,7 @@ class V5MessageBus:
                 self.channel.stop_consuming()
         else:
             # Start consuming in a separate thread
-            def consume():
+            def consume() -> None:
                 """Consume messages in separate thread"""
                 try:
                     self.channel.start_consuming()
@@ -235,7 +235,7 @@ class V5MessageBus:
             consumer_thread.start()
             self.logger.info("Started message consumption (non-blocking)")
 
-    def close(self):
+    def close(self) -> None:
         """Close connection to RabbitMQ"""
         if self.connection and not self.connection.is_closed:
             try:
@@ -256,7 +256,7 @@ class WindowMessenger:
         self.message_bus = message_bus
         self.logger = logging.getLogger(f'WindowMessenger-{window_id}')
 
-    def send_activity(self, activity_type: str, data: Dict):
+    def send_activity(self, activity_type: str, data: Dict) -> bool:
         """Send window activity message"""
         return self.message_bus.publish_message(
             exchange='window.activities',
@@ -265,7 +265,7 @@ class WindowMessenger:
             window_id=self.window_id
         )
 
-    def send_code_change(self, change_type: str, data: Dict):
+    def send_code_change(self, change_type: str, data: Dict) -> bool:
         """Send code change notification"""
         return self.message_bus.publish_message(
             exchange='code.changes',
@@ -274,7 +274,7 @@ class WindowMessenger:
             window_id=self.window_id
         )
 
-    def send_protocol_update(self, update_type: str, data: Dict):
+    def send_protocol_update(self, update_type: str, data: Dict) -> bool:
         """Send protocol update (Window C only)"""
         if self.window_id != 'window_c':
             self.logger.warning("Only Window C can send protocol updates")
@@ -287,7 +287,7 @@ class WindowMessenger:
             window_id=self.window_id
         )
 
-    def send_governance_review(self, review_type: str, data: Dict):
+    def send_governance_review(self, review_type: str, data: Dict) -> bool:
         """Send governance review (Window D only)"""
         if self.window_id != 'window_d':
             self.logger.warning("Only Window D can send governance reviews")
@@ -300,7 +300,7 @@ class WindowMessenger:
             window_id=self.window_id
         )
 
-    def send_feature_insight(self, insight_type: str, data: Dict):
+    def send_feature_insight(self, insight_type: str, data: Dict) -> bool:
         """Send feature insight (Window E only)"""
         if self.window_id != 'window_e':
             self.logger.warning("Only Window E can send feature insights")
@@ -313,7 +313,7 @@ class WindowMessenger:
             window_id=self.window_id
         )
 
-    def listen_for_protocol_updates(self, callback: Callable):
+    def listen_for_protocol_updates(self, callback: Callable) -> bool:
         """Listen for protocol updates (Windows A & B)"""
         if self.window_id not in ['window_a', 'window_b']:
             self.logger.warning("Only Windows A & B should listen for protocol updates")
@@ -332,7 +332,7 @@ class WindowMessenger:
 
         return self.message_bus.subscribe_to_queue(queue, callback, self.window_id)
 
-    def listen_for_governance_feedback(self, callback: Callable):
+    def listen_for_governance_feedback(self, callback: Callable) -> bool:
         """Listen for governance feedback (Window C only)"""
         if self.window_id != 'window_c':
             self.logger.warning("Only Window C should listen for governance feedback")
@@ -359,42 +359,44 @@ class OfflineMessenger:
         self.window_id = window_id
         self.logger = logging.getLogger(f'OfflineMessenger-{window_id}')
 
-    def send_activity(self, activity_type: str, data: Dict):
+    def send_activity(self, activity_type: str, data: Dict) -> bool:
         """Log activity when offline"""
         self.logger.info(f"[OFFLINE] Activity: {activity_type} - {data}")
         return True
 
-    def send_code_change(self, change_type: str, data: Dict):
+    def send_code_change(self, change_type: str, data: Dict) -> bool:
         """Log code changes when offline"""
         self.logger.info(f"[OFFLINE] Code Change: {change_type} - {data}")
         return True
 
-    def send_protocol_update(self, update_type: str, data: Dict):
+    def send_protocol_update(self, update_type: str, data: Dict) -> bool:
         """Log protocol updates when offline"""
         self.logger.info(f"[OFFLINE] Protocol Update: {update_type} - {data}")
         return True
 
-    def send_governance_review(self, review_type: str, data: Dict):
+    def send_governance_review(self, review_type: str, data: Dict) -> bool:
         """Log governance reviews when offline"""
         self.logger.info(f"[OFFLINE] Governance Review: {review_type} - {data}")
         return True
 
-    def send_feature_insight(self, insight_type: str, data: Dict):
+    def send_feature_insight(self, insight_type: str, data: Dict) -> bool:
         """Log feature insights when offline"""
         self.logger.info(f"[OFFLINE] Feature Insight: {insight_type} - {data}")
         return True
 
-    def listen_for_protocol_updates(self, callback: Callable):
+    def listen_for_protocol_updates(self, callback: Callable) -> bool:
         """Disable protocol listening when offline"""
         self.logger.info("[OFFLINE] Protocol update listening disabled")
         return True
 
-    def listen_for_governance_feedback(self, callback: Callable):
+    def listen_for_governance_feedback(self, callback: Callable) -> bool:
         """Disable governance listening when offline"""
         self.logger.info("[OFFLINE] Governance feedback listening disabled")
         return True
 
-def create_messenger(window_id: str, config_path: Path) -> WindowMessenger:
+def create_messenger(
+    window_id: str, config_path: Path
+) -> Union[WindowMessenger, OfflineMessenger]:
     """Factory function to create appropriate messenger"""
     try:
         message_bus = V5MessageBus(config_path)
