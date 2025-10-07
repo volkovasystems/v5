@@ -5,152 +5,33 @@ All notable changes to the V5 - 5 Strategies Productive Development Tool will be
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2025-10-08
 
-**Major Enhancement**: Test Suite Reorganization
+## [1.0.0] - 2025-10-07 (Development Version)
 
-### Changed
-- **Test Structure Reorganization**: Separated installation and uninstallation tests into dedicated files
-- **Clear Test Separation**: `test_install.bats` (33 tests) and `test_uninstall.bats` (26 tests)
-- **Updated Test Commands**: New command structure `./test install`, `./test uninstall`, `./test core-tool`
-- **Improved Test Maintainability**: Each test file has focused responsibility and clear scope
+**Development Release**: V5 - 5 Strategies Productive Development Tool
 
-### Enhanced
-- **TAP Output Alignment**: Test result files now match new structure (`install-tests-*.tap`, `uninstall-tests-*.tap`)
-- **Documentation Updates**: All documentation updated to reflect new test organization
-- **Test Runner Improvements**: Updated test runner scripts to support new file structure
-- **Docker Integration**: Updated Docker test environment for new test files
+*This version is under active development and not yet publicly released.*
 
-### Removed
-- **test_consolidated_scripts.bats**: Functionality split into dedicated install/uninstall test files
-- **test_installation.bats**: Consolidated into comprehensive `test_install.bats`
-- **Outdated TAP files**: Cleaned up old test result files for consistency
+### Latest Development Updates (2025-10-08)
 
-### Test Command Changes
+**Test Suite Reorganization:**
+- Separated installation and uninstallation tests into dedicated files
+- `test_install.bats` (33 tests) and `test_uninstall.bats` (26 tests)
+- Updated test commands: `./test install`, `./test uninstall`, `./test core-tool`
+- TAP output files aligned with new structure
+- Improved test maintainability with focused responsibilities
 
-**New test commands:**
-```bash
-# Run installation tests (33 tests)
-./test install
+**Unified Installation & Uninstall Scripts:**
+- Single `install.sh` with global installation as default
+- Comprehensive `uninstall.sh` with repository, machine, and complete removal options
+- Interactive uninstall menu and dry-run support
+- Enhanced error handling and cross-platform compatibility
 
-# Run uninstallation tests (26 tests) 
-./test uninstall
-
-# Run core tool tests (13 tests)
-./test core-tool
-
-# Run all tests (72 tests total)
-./test all
-```
-
-**TAP output files:**
-- `install-tests-YYYY-MM-DD.tap` - Installation functionality tests
-- `uninstall-tests-YYYY-MM-DD.tap` - Uninstallation functionality tests
-- `core-tool-tests-YYYY-MM-DD.tap` - Core Python module tests
-- `all-tests-combined-YYYY-MM-DD.tap` - Combined results (72 tests)
-
----
-
-## [1.2.0] - 2025-10-08
-
-**Major Enhancement**: Consolidated Installation & Uninstall Scripts
-
-### Added
-- **Unified Installation Script**: Single `install.sh` with global installation as default
-- **Comprehensive Uninstall Script**: `uninstall.sh` with repository, machine, and complete removal options
-- **Interactive Uninstall Menu**: User-friendly selection when no flags provided
-- **Dry Run Support**: Preview changes with `--dry-run` flag for both install and uninstall
-- **Flexible Installation Modes**: `--global` (default) and `--local` options
-
-### Enhanced
-- **Concise Script Management**: Reduced from 3 separate scripts to 2 unified scripts
-- **Better User Experience**: Clear distinction between repository and machine-level operations
-- **Improved Documentation**: Comprehensive uninstallation section in README
-- **Smart Dependency Detection**: Enhanced Python and system package checking
-
-### Installation Changes
-
-**New unified install.sh:**
-```bash
-# Global installation (default)
-./install.sh
-
-# Local installation only
-./install.sh --local
-
-# Check dependencies
-./install.sh --check-deps
-
-# Preview installation
-./install.sh --dry-run
-```
-
-**New unified uninstall.sh:**
-```bash
-# Interactive menu
-./uninstall.sh
-
-# Specific uninstall modes
-./uninstall.sh --repo      # Repository only
-./uninstall.sh --machine   # Machine only
-./uninstall.sh --complete  # Both
-```
-
-### Removed
-- **install-global.sh**: Functionality merged into main install.sh
-- **uninstall-global.sh**: Replaced with comprehensive uninstall.sh
-
-### Technical Improvements
-- Enhanced error handling and user feedback
-- Consistent color coding and output formatting
-- Better cross-platform compatibility
-- Improved sudo privilege management
-
----
-
-## [1.1.0] - 2025-10-08
-
-**Major Enhancement**: Global Installation and Enhanced Repository Detection
-
-### Added
-- **Global Installation Support**: New `install-global.sh` script creates system-wide `v5` command
-- **Auto Git Repository Detection**: Automatically finds git repository root from current directory
-- **Enhanced CLI Interface**: Improved argument parsing with better help system
-- **Repository Path Arguments**: Optional repository path argument, defaults to current git repo
-- **Smart Directory Navigation**: Works from any directory within a git repository
-- **Global Uninstall Script**: `uninstall-global.sh` for clean removal of global installation
-
-### Enhanced
-- **Improved User Experience**: Run `v5` from anywhere within any git repository
-- **Better Error Messages**: Clear feedback when not in a git repository
-- **Command Examples**: Enhanced help with practical usage examples
-- **Installation Documentation**: Updated README with global installation instructions
-
-### Usage Improvements
-
-After global installation:
-```bash
-# Navigate to any git repository
-cd /path/to/your/project
-
-# Run V5 commands directly
-v5              # Initialize and start
-v5 init         # Initialize only
-v5 status       # Check status
-v5 help         # Show help
-```
-
-### Technical Changes
-- Enhanced `v5_tool.py` with automatic git root detection
-- Improved CLI argument parsing and validation
-- Added repository path resolution logic
-- Better error handling for non-git directories
-
----
-
-## [1.0.0] - 2025-10-07
-
-**Initial Release**: V5 - 5 Strategies Productive Development Tool
+**Global Installation Support:**
+- System-wide `v5` command installation
+- Automatic git repository detection
+- Enhanced CLI interface with improved argument parsing
+- Smart directory navigation within git repositories
 
 *A lean, concise, performant productive development tool that transforms how you code using five specialized window strategies.*
 
@@ -204,6 +85,22 @@ cd v5 && ./install.sh
 
 # Check version
 ./v5 --version
+```
+
+### Current Test Commands (Development)
+
+```bash
+# Run individual test suites
+./test install      # 33 installation functionality tests
+./test uninstall    # 26 uninstallation functionality tests
+./test core-tool    # 13 core Python module tests
+
+# Run all tests
+./test all          # 72 total tests
+
+# Generate TAP output
+./test --local --tap install    # Generate install-tests-YYYY-MM-DD.tap
+./test --local --tap uninstall  # Generate uninstall-tests-YYYY-MM-DD.tap
 ```
 
 ---
