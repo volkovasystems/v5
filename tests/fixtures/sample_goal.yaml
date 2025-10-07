@@ -10,7 +10,7 @@ goal:
 constraints:
   scope: testing-infrastructure
   methodology: test-driven-development
-  platforms: 
+  platforms:
     - linux
     - macos
     - windows-wsl
@@ -27,7 +27,7 @@ success_criteria:
   - Performance benchmarks established
 
 scope:
-  included: 
+  included:
     - BATS test suite creation
     - Docker test environment
     - GitHub Actions workflow

@@ -243,7 +243,9 @@ version: "1.0"
         external_deps = ['rabbitmq-server']
         for dep in external_deps:
             try:
-                result = subprocess.run(['which', dep], capture_output=True, text=True, timeout=10)
+                result = subprocess.run(
+                    ['which', dep], capture_output=True, text=True, timeout=10
+                )
                 if result.returncode != 0:
                     missing_deps.append(dep)
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
@@ -263,11 +265,16 @@ version: "1.0"
         self.logger.warning(f"Missing dependencies: {missing}")
 
         # Install Python packages
-        python_deps = [dep.replace('python-', '') for dep in missing if dep.startswith('python-')]
+        python_deps = [
+            dep.replace('python-', '') for dep in missing 
+            if dep.startswith('python-')
+        ]
         if python_deps:
             try:
                 cmd = [sys.executable, '-m', 'pip', 'install'] + python_deps
-                result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=300
+                )
                 if result.returncode == 0:
                     self.logger.info(f"Installed Python packages: {python_deps}")
                 else:

@@ -10,16 +10,16 @@ setup_v5_test_env() {
     # Create isolated test directory
     mkdir -p "$TEST_TEMP_DIR"
     cd "$TEST_TEMP_DIR"
-    
+
     # Copy V5 files to test environment
     cp -r "$BATS_TEST_DIRNAME/../"* . 2>/dev/null || true
-    
+
     # Ensure executables are available
     chmod +x v5 install.sh get-v5.sh 2>/dev/null || true
-    
+
     # Set up Python path
     export PYTHONPATH="$TEST_TEMP_DIR/src:$PYTHONPATH"
-    
+
     # Create test repository structure
     mkdir -p test_repo/.warp/{protocols,communication,logs}
 }
@@ -40,7 +40,7 @@ wait_for_process() {
     local pid="$1"
     local timeout="${2:-10}"
     local count=0
-    
+
     while [ $count -lt $timeout ]; do
         if ! kill -0 "$pid" 2>/dev/null; then
             return 0

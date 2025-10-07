@@ -15,7 +15,7 @@ teardown() {
 
 @test "Python modules can be imported successfully" {
     skip_if_missing "python3" "python3 not available"
-    
+
     # Test core module imports
     run python3 -c "
 import sys
@@ -33,7 +33,7 @@ except ImportError as e:
 
 @test "messaging module imports without pika dependency" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import sys
 sys.path.insert(0, '../src')
@@ -50,7 +50,7 @@ except ImportError as e:
 
 @test "goal parser handles valid YAML goal files" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import sys
 sys.path.insert(0, '../src')
@@ -77,7 +77,7 @@ else:
 
 @test "goal parser validates request alignment" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import sys
 sys.path.insert(0, '../src')
@@ -97,7 +97,7 @@ print(f'Confidence: {alignment[\"confidence\"]:.2f}')
 
 @test "V5System initializes with valid repository" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run timeout 10 python3 -c "
 import sys
 sys.path.insert(0, '../src')
@@ -119,7 +119,7 @@ except Exception as e:
 
 @test "window implementations exist and are valid Python" {
     skip_if_missing "python3" "python3 not available"
-    
+
     # Test each window file exists and compiles
     for window in a b c d e; do
         run python3 -m py_compile "../src/windows/window_${window}.py"
@@ -129,7 +129,7 @@ except Exception as e:
 
 @test "goal YAML file structure is valid" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import yaml
 import sys
@@ -137,19 +137,19 @@ import sys
 try:
     with open('.warp/goal.yaml', 'r') as f:
         data = yaml.safe_load(f)
-    
+
     # Check required structure
     if 'goal' not in data:
         print('YAML validation: FAILED - no goal section')
         exit(1)
-    
+
     if 'primary' not in data['goal']:
         print('YAML validation: FAILED - no primary goal')
         exit(1)
-    
+
     print('YAML validation: SUCCESS')
     print(f'Primary goal: {data[\"goal\"][\"primary\"]}')
-    
+
 except yaml.YAMLError as e:
     print(f'YAML validation: FAILED - {e}')
     exit(1)
@@ -171,7 +171,7 @@ except Exception as e:
 
 @test "messaging configuration can be created" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import sys, json
 sys.path.insert(0, '../src')
@@ -194,7 +194,7 @@ print('Config file saved successfully')
 
 @test "version information is accessible from Python modules" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import sys
 sys.path.insert(0, '../src')
@@ -205,7 +205,7 @@ version_file = Path('../VERSION')
 if version_file.exists():
     version = version_file.read_text().strip()
     print(f'Version from file: {version}')
-    
+
     # Validate version format
     import re
     if re.match(r'^[0-9]+\.[0-9]+\.[0-9]+$', version):
@@ -224,7 +224,7 @@ else:
 
 @test "error handling works without crashing" {
     skip_if_missing "python3" "python3 not available"
-    
+
     # Test graceful handling of missing dependencies
     run python3 -c "
 import sys
@@ -246,7 +246,7 @@ except Exception as e:
 
 @test "goal summary generation works correctly" {
     skip_if_missing "python3" "python3 not available"
-    
+
     run python3 -c "
 import sys
 sys.path.insert(0, '../src')
@@ -272,7 +272,7 @@ else:
 
 @test "Python path and imports work in isolated environment" {
     skip_if_missing "python3" "python3 not available"
-    
+
     # Test that our test environment setup works correctly
     run python3 -c "
 import sys

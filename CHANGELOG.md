@@ -125,7 +125,7 @@ V5 is a complete development productivity tool featuring:
 ### Added - Testing Infrastructure
 - **Comprehensive BATS Test Suite**: TAP-compliant test framework with Docker isolation
   - Unit tests for Python modules (`test_core_system.bats`)
-  - Integration tests for installation (`test_installation.bats`) 
+  - Integration tests for installation (`test_installation.bats`)
   - Test fixtures and helper functions (`test_helper.bash`)
   - Cross-platform compatibility testing
 

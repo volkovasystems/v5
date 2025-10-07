@@ -349,7 +349,7 @@ V5 includes a comprehensive BATS (Bash Automated Testing System) test suite with
 tests/
 ├── unit/                    # Unit tests for individual components
 │   └── test_core_system.bats   # Core Python module tests
-├── integration/             # Integration and system tests  
+├── integration/             # Integration and system tests
 │   └── test_installation.bats  # Installation script tests
 ├── fixtures/                # Test data and sample files
 ├── Dockerfile              # Isolated test environment
@@ -477,7 +477,7 @@ V5 includes comprehensive GitHub Actions workflows:
 
 #### Workflow Triggers
 - **Push/PR** to main/develop branches
-- **Daily scheduled** runs at 2 AM UTC  
+- **Daily scheduled** runs at 2 AM UTC
 - **Manual dispatch** with test type selection
 
 ### Test Results and Reporting
@@ -510,7 +510,7 @@ setup() {
 }
 
 teardown() {
-    teardown_v5_test_env  
+    teardown_v5_test_env
 }
 
 @test "my new feature works correctly" {

@@ -264,7 +264,10 @@ class WindowA:
         print(f"   Repository: {self.target_repo}")
         print(f"   Goal: {self.goal}")
         print(f"   Active Rules: {len(self.protocols.get('rules', {}))}")
-        print(f"   Messaging: {'Connected' if hasattr(self.messenger, 'message_bus') else 'Offline'}")
+        messaging_status = (
+            'Connected' if hasattr(self.messenger, 'message_bus') else 'Offline'
+        )
+        print(f"   Messaging: {messaging_status}")
 
         # Check if other windows are running
         pid_file = self.warp_dir / 'communication' / 'pids.json'
@@ -328,7 +331,9 @@ class WindowA:
                 data['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
                 # Write back as YAML
-                updated_content = yaml.dump(data, default_flow_style=False, allow_unicode=True)
+                updated_content = yaml.dump(
+                    data, default_flow_style=False, allow_unicode=True
+                )
                 goal_file.write_text(updated_content)
 
             except ImportError:

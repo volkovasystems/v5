@@ -60,7 +60,7 @@ teardown() {
     run head -n 1 get-v5.sh
     assert_success
     assert_output_contains "#!/usr/bin/env bash"
-    
+
     # Check for proper error handling patterns
     run grep -q "set -euo pipefail" get-v5.sh
     assert_success
@@ -70,14 +70,14 @@ teardown() {
     # Run install in dry-run mode if available
     mkdir -p test_install_target
     cd test_install_target
-    
+
     # Simulate what install should create
     run ../install.sh --target="$PWD" --dry-run 2>/dev/null || {
         # If dry-run not available, check the expected structure
         mkdir -p .warp/{protocols,communication,logs}
         assert_dir_exists ".warp"
         assert_dir_exists ".warp/protocols"
-        assert_dir_exists ".warp/communication" 
+        assert_dir_exists ".warp/communication"
         assert_dir_exists ".warp/logs"
     }
 }
@@ -110,11 +110,11 @@ teardown() {
 
 @test "requirements.txt contains valid Python packages" {
     assert_file_exists "requirements.txt"
-    
+
     # Check that it contains expected packages
     run grep -E "^(pika|psutil|watchdog|PyYAML)" requirements.txt
     assert_success
-    
+
     # Check that lines are properly formatted (no trailing spaces)
     run grep -E "[[:space:]]$" requirements.txt
     assert_failure
@@ -122,35 +122,35 @@ teardown() {
 
 @test "shell scripts pass shellcheck if available" {
     skip_if_missing "shellcheck" "shellcheck not available for linting"
-    
+
     # Test main scripts
     run shellcheck v5
     assert_success
-    
-    run shellcheck install.sh  
+
+    run shellcheck install.sh
     assert_success
-    
+
     run shellcheck get-v5.sh
     assert_success
 }
 
 @test "Python modules compile without syntax errors" {
     skip_if_missing "python3" "python3 not available"
-    
+
     # Test core modules compile
     run python3 -m py_compile src/core/v5_system.py
     assert_success
-    
+
     run python3 -m py_compile src/utils/messaging.py
     assert_success
-    
+
     run python3 -m py_compile src/utils/goal_parser.py
     assert_success
 }
 
 @test "README.md exists and is not empty" {
     assert_file_exists "README.md"
-    
+
     # Should have substantial content
     run wc -l README.md
     assert_success
@@ -161,7 +161,7 @@ teardown() {
 
 @test "LICENSE file exists" {
     assert_file_exists "LICENSE"
-    
+
     # Should contain copyright and license text
     run grep -i "copyright\|license\|mit" LICENSE
     assert_success
@@ -169,11 +169,11 @@ teardown() {
 
 @test "CHANGELOG.md exists and follows format" {
     assert_file_exists "CHANGELOG.md"
-    
+
     # Should contain version headers
     run grep -E "^## \[[0-9]+\.[0-9]+\.[0-9]+\]" CHANGELOG.md
     assert_success
-    
+
     # Should contain current version
     version=$(cat VERSION)
     run grep "## \[$version\]" CHANGELOG.md
