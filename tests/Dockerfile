@@ -35,8 +35,10 @@ RUN git clone https://github.com/bats-core/bats-support.git /usr/lib/bats/bats-s
 # Install RabbitMQ for integration testing (optional)
 RUN apt-get update && apt-get install -y \
     rabbitmq-server \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-rc.d rabbitmq-server disable
+    && rm -rf /var/lib/apt/lists/*
+
+# Disable RabbitMQ auto-start (Docker-friendly approach)
+RUN service rabbitmq-server stop || true
 
 # Create test user and directories
 RUN useradd -m -s /bin/bash tester \
