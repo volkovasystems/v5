@@ -78,8 +78,9 @@ done
 
 # If no mode specified, ask user
 if [[ -z "$UNINSTALL_MODE" ]]; then
-    # Check if we're in a non-interactive environment (no TTY for both input and output)
-    if [[ ! -t 0 ]] && [[ ! -t 1 ]]; then
+    # Check if we're in a non-interactive environment
+    # If stdin is not a TTY or if we're in a pipeline/subshell context
+    if [[ ! -t 0 ]] || [[ -p /dev/stdin ]]; then
         echo -e "${RED}❌ Error: No uninstall mode specified and running in non-interactive environment${NC}"
         echo ""
         echo "Please specify an uninstall mode:"
@@ -256,7 +257,11 @@ uninstall_machine() {
                 echo -e "${YELLOW}   [DRY RUN] Would ask to remove installation directory${NC}"
             else
                 echo ""
-                read -p "Remove V5 installation directory $install_dir? (y/N): " confirm
+                read -p "Remove V5 installation directory $install_dir? (y/N): " confirm || {
+                    echo -e "\n${YELLOW}   ⚠️  Could not read confirmation, skipping directory removal${NC}"
+                    echo -e "${BLUE}   ℹ️  Keeping installation directory: $install_dir${NC}"
+                    continue
+                }
                 if [[ $confirm =~ ^[Yy]$ ]]; then
                     remove_directory "$install_dir" "V5 installation directory"
                 else
