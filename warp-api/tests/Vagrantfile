@@ -178,11 +178,10 @@ EOF
     
     WARP_SUCCESS=false
     
-    # Correct Warp Terminal download URLs from official website
+    # Direct download URLs for Warp Terminal .deb packages
     WARP_URLS=(
-        "https://app.warp.dev/get_warp?package=deb"
-        "https://app.warp.dev/get_warp?package=deb_x64"
-        "https://app.warp.dev/get_warp"
+        "https://releases.warp.dev/stable/v0.2024.10.01.08.02.stable_01/warp-terminal_v0.2024.10.01.08.02.stable_01_amd64.deb"
+        "https://github.com/warpdotdev/Warp/releases/download/v0.2024.10.01.08.02.stable_01/warp-terminal_v0.2024.10.01.08.02.stable_01_amd64.deb"
     )
     
     for url in "${WARP_URLS[@]}"; do
@@ -215,9 +214,11 @@ EOF
             echo "⚠️ Download failed for $url"
         fi
     done
-    
     if [ "$WARP_SUCCESS" != true ]; then
-        echo "⚠️ All Warp download URLs failed - VM will work without Warp Terminal"
+        echo "❌ CRITICAL: Warp Terminal installation failed!"
+        echo "❌ All download URLs failed - this is required for testing"
+        echo "❌ Setup cannot continue without Warp Terminal"
+        exit 1
     fi
     
     # Install Warp Terminal if download succeeded
@@ -227,13 +228,18 @@ EOF
             echo "✅ Warp Terminal installed successfully"
         else
             echo "🔧 Fixing dependencies..."
-            apt-get install -f -y && dpkg -i warp-terminal.deb || handle_error "Warp Terminal installation"
+            if apt-get install -f -y && dpkg -i warp-terminal.deb; then
+                echo "✅ Warp Terminal installed successfully after fixing dependencies"
+            else
+                echo "❌ CRITICAL: Warp Terminal installation failed even after dependency fixes"
+                exit 1
+            fi
         fi
         rm -f warp-terminal.deb
     else
-        echo "⚠️ Skipping Warp Terminal installation due to download failure"
+        echo "❌ CRITICAL: Warp Terminal download failed - setup cannot continue"
+        exit 1
     fi
-    
     # Configure auto-login for visible setup process
     show_progress "Configuring GUI and finalizing setup..." "8" "8"
     

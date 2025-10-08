@@ -351,8 +351,8 @@ wait_for_vm_gui() {
     local attempt=0
     
     # Adjust timeout based on TEST_COMMAND if available
-    if [[ "$TEST_COMMAND" == "setup" ]]; then
-        max_attempts="${1:-5}"  # Default to 5 attempts (10 seconds) for setup
+    if [[ "$TEST_COMMAND" == "setup" ]] || [[ "$TEST_COMMAND" == "vm-restart" ]] || [[ "$TEST_COMMAND" == "vm-init" ]]; then
+        max_attempts="${1:-5}"  # Default to 5 attempts (10 seconds) for setup-like commands
         print_message "BLUE" "⏳ Waiting for VM GUI to be ready (quick setup mode)..."
     else
         print_message "BLUE" "⏳ Waiting for VM GUI to be ready..."
@@ -365,7 +365,7 @@ wait_for_vm_gui() {
         fi
         
         ((attempt++))
-        if [[ "$TEST_COMMAND" == "setup" ]]; then
+        if [[ "$TEST_COMMAND" == "setup" ]] || [[ "$TEST_COMMAND" == "vm-restart" ]] || [[ "$TEST_COMMAND" == "vm-init" ]]; then
             print_message "YELLOW" "⏳ Waiting for GUI... ($attempt/$max_attempts) - setup mode"
         else
             print_message "YELLOW" "⏳ Waiting for GUI... ($attempt/$max_attempts)"
@@ -373,10 +373,10 @@ wait_for_vm_gui() {
         sleep 2
     done
     
-    if [[ "$TEST_COMMAND" == "setup" ]]; then
+    if [[ "$TEST_COMMAND" == "setup" ]] || [[ "$TEST_COMMAND" == "vm-restart" ]] || [[ "$TEST_COMMAND" == "vm-init" ]]; then
         print_message "YELLOW" "⚠️ VM GUI not ready yet (setup mode timeout) - continuing anyway"
         print_message "BLUE" "💡 VM is being set up, GUI may take longer to fully initialize"
-        return 0  # Don't fail on setup, just continue
+        return 0  # Don't fail on setup-like commands, just continue
     else
         print_message "RED" "❌ VM GUI failed to start within timeout"
         return 1
