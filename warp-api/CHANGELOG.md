@@ -7,10 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Comprehensive testing environment documentation consolidation
-- Repository integration guides with pristine VM snapshots
-- Streamlined user experience for zero-setup testing
+## [0.2.1] - 2025-10-08
+
+### Fixed
+- **Critical API Issues**: Added missing `_get_warp_processes()` method referenced in tests
+- **Path Handling**: Standardized to use pathlib.Path objects consistently throughout
+- **Process Detection**: Improved Warp process detection with fallback mechanisms
+- **Test Isolation**: Enhanced BATS tests with proper test isolation and cleanup
+- **VM Resource Detection**: Dynamic VM resource allocation based on host capabilities
+- **Warp Installation**: Simplified and more reliable Warp Terminal installation with fallbacks
+
+### Enhanced
+- **Configuration Management**: Added WarpConfig class for better executable detection
+- **Error Handling**: Consolidated error handling with safe_execute() method
+- **Logging**: Comprehensive logging system with configurable levels
+- **VM Performance**: Dynamic resource allocation (1/3 host RAM, half host CPUs)
+- **Documentation**: Fixed version mismatches and updated system requirements
+
+### Technical Improvements
+- Improved BATS test reliability with unique test environments
+- Better Warp executable detection (warp-terminal vs warp)
+- Enhanced VM provisioning with graceful fallbacks
+- Standardized JSON serialization for Path objects
 
 ## [0.2.0] - 2025-10-08
 

@@ -16,6 +16,11 @@ RESULTS_DIR="${BATS_TEST_DIRNAME}/results"
 #######################################
 
 setup() {
+    # Test isolation - create unique test environment
+    export TEST_ISOLATION_ID="$$_$RANDOM_$BATS_TEST_NUMBER"
+    export TEMP_TEST_DIR="/tmp/warp_test_$TEST_ISOLATION_ID"
+    mkdir -p "$TEMP_TEST_DIR"
+    
     # Ensure directories exist
     mkdir -p "$LOGS_DIR" "$SCREENSHOTS_DIR" "$REPORTS_DIR" "$RESULTS_DIR"
     
@@ -35,14 +40,26 @@ setup() {
 }
 
 teardown() {
-    # Clean up any running Warp processes from tests
-    pkill -f warp 2>/dev/null || true
+    # Clean up test isolation environment
+    if [[ -n "$TEMP_TEST_DIR" && -d "$TEMP_TEST_DIR" ]]; then
+        rm -rf "$TEMP_TEST_DIR" 2>/dev/null || true
+    fi
     
-    # Clean up any remaining xtrlock processes
-    pkill -f xtrlock 2>/dev/null || true
+    # Only clean up test-specific processes, avoid touching user processes
+    # This is much safer and prevents interference with active user sessions
+    if [[ -n "$TEST_ISOLATION_ID" ]]; then
+        # Clean up any processes that might have been started by this specific test
+        local test_processes=$(pgrep -f "$TEST_ISOLATION_ID" 2>/dev/null || echo "")
+        if [[ -n "$test_processes" ]]; then
+            echo "$test_processes" | xargs -r kill 2>/dev/null || true
+        fi
+    fi
     
-    # Log test completion
-    echo "[$(date)] Test completed: $BATS_TEST_NAME" >> "$LOGS_DIR/bats_execution.log"
+    # Log test completion (create logs dir if it doesn't exist)
+    mkdir -p "$LOGS_DIR" 2>/dev/null || true
+    if [[ -w "$LOGS_DIR" || -w "$(dirname "$LOGS_DIR")" ]]; then
+        echo "[$(date)] Test completed: $BATS_TEST_NAME" >> "$LOGS_DIR/bats_execution.log" 2>/dev/null || true
+    fi
 }
 
 #######################################
@@ -129,17 +146,22 @@ except ImportError:
 @test "Process verification methods work correctly" {
     run python3 -c "
 import sys
+import logging
 sys.path.append('$WARP_API_DIR')
 from warp_api import WarpAPI
-api = WarpAPI()
 
-# Test Warp detection (should be false initially)
+# Create API with minimal logging to avoid noise
+api = WarpAPI(log_level=logging.ERROR)
+
+# Test Warp detection (should be false initially for most systems)
 warp_running = api._verify_warp_running()
 print('warp_running:', warp_running)
 
 # Test process counting
-process_count = len(api._get_warp_processes())
+process_list = api._get_warp_processes()
+process_count = len(process_list)
 print('process_count:', process_count)
+print('processes:', process_list)
 "
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"warp_running:"* ]]
@@ -149,9 +171,12 @@ print('process_count:', process_count)
 @test "Action logging and tracking works correctly" {
     run python3 -c "
 import sys
+import logging
 sys.path.append('$WARP_API_DIR')
 from warp_api import WarpAPI
-api = WarpAPI()
+
+# Create API with minimal logging
+api = WarpAPI(log_level=logging.ERROR)
 
 # Test _log_action method
 entry = api._log_action('test_action', True, {'detail': 'test'})
@@ -166,6 +191,10 @@ assert 'details' in entry
 assert len(api.session_actions) == 1
 assert api.session_actions[0] == entry
 
+# Test safe_execute method
+result = api.safe_execute('test_safe', lambda: 'success')
+assert result == 'success'
+
 print('action_logging: functional')
 "
     [[ "$status" -eq 0 ]]
@@ -175,9 +204,12 @@ print('action_logging: functional')
 @test "Safety mechanisms handle locking gracefully" {
     run python3 -c "
 import sys, subprocess
+import logging
 sys.path.append('$WARP_API_DIR')
 from warp_api import WarpAPI
-api = WarpAPI()
+
+# Create API with minimal logging
+api = WarpAPI(log_level=logging.ERROR)
 
 # Test xtrlock availability
 def test_xtrlock():
@@ -197,9 +229,13 @@ if lock_pid:
     print('input_locking: functional')
 else:
     print('input_locking: graceful_fallback')
+
+# Test configuration detection
+print('warp_executable:', api.config.warp_executable)
 "
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"input_locking:"* ]]
+    [[ "$output" == *"warp_executable:"* ]]
 }
 
 #######################################
@@ -209,16 +245,20 @@ else:
 @test "Screenshot functionality handles missing GUI gracefully" {
     run python3 -c "
 import sys
+import logging
+from pathlib import Path
 sys.path.append('$WARP_API_DIR')
 from warp_api import WarpAPI
-api = WarpAPI()
+
+# Create API with minimal logging
+api = WarpAPI(log_level=logging.ERROR)
 
 # Test screenshot method
 screenshot_path = api._take_screenshot('test')
-if screenshot_path and screenshot_path.exists():
+if screenshot_path and Path(screenshot_path).exists():
     print('screenshot: functional')
     # Clean up test screenshot
-    screenshot_path.unlink()
+    Path(screenshot_path).unlink()
 else:
     print('screenshot: graceful_fallback')
 "
@@ -229,9 +269,13 @@ else:
 @test "Report generation works correctly" {
     run python3 -c "
 import sys, json
+import logging
+from pathlib import Path
 sys.path.append('$WARP_API_DIR')
 from warp_api import WarpAPI
-api = WarpAPI()
+
+# Create API with minimal logging
+api = WarpAPI(log_level=logging.ERROR)
 
 # Create test actions
 api.session_actions = [
@@ -250,25 +294,27 @@ api.session_actions = [
 ]
 
 # Generate report
-report_path = api._generate_report()
-print('report_generated:', report_path is not None)
+report_path_str = api._generate_report()
+print('report_generated:', report_path_str is not None)
 
-if report_path and report_path.exists():
-    # Validate JSON structure
-    with open(report_path) as f:
-        report = json.load(f)
-    
-    assert 'session' in report
-    assert 'actions' in report
-    assert 'timestamp' in report['session']
-    assert 'total_actions' in report['session']
-    assert 'successful_actions' in report['session']
-    assert 'success_rate' in report['session']
-    
-    print('report_structure: valid')
-    
-    # Clean up test report
-    report_path.unlink()
+if report_path_str:
+    report_path = Path(report_path_str)
+    if report_path.exists():
+        # Validate JSON structure
+        with open(report_path) as f:
+            report = json.load(f)
+        
+        assert 'session' in report
+        assert 'actions' in report
+        assert 'timestamp' in report['session']
+        assert 'total_actions' in report['session']
+        assert 'successful_actions' in report['session']
+        assert 'success_rate' in report['session']
+        
+        print('report_structure: valid')
+        
+        # Clean up test report
+        report_path.unlink()
 "
     [[ "$status" -eq 0 ]]
     [[ "$output" == *"report_generated:"* ]]

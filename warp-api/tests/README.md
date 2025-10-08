@@ -2,7 +2,7 @@
 
 **Comprehensive testing infrastructure for the Warp Terminal Control API with pixel-perfect GUI automation**
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](../CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](../CHANGELOG.md)
 [![VM Ready](https://img.shields.io/badge/VM-Ubuntu%2022.04-brightgreen.svg)](#vm-environment)
 [![Testing](https://img.shields.io/badge/testing-BATS%2030%2B%20scenarios-orange.svg)](#robust-test-scenarios)
 

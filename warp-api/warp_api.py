@@ -23,6 +23,8 @@ import time
 import json
 import subprocess
 import argparse
+import shutil
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -36,15 +38,44 @@ except ImportError:
     GUI_AVAILABLE = False
     print("Warning: pyautogui not available. Install with: pip install pyautogui")
 
+class WarpConfig:
+    """Configuration management for Warp API"""
+    def __init__(self):
+        self.screenshots_dir = Path("./screenshots")
+        self.reports_dir = Path("./reports")
+        self.warp_executable = self._detect_warp_executable()
+        
+    def _detect_warp_executable(self):
+        """Detect correct Warp executable name"""
+        for exe in ['warp-terminal', 'warp']:
+            if shutil.which(exe):
+                return exe
+        return 'warp'  # fallback
+
 class WarpAPI:
     """Simple, focused Warp Terminal Control API"""
     
-    def __init__(self):
-        self.reports_dir = Path("./reports")
-        self.screenshots_dir = Path("./screenshots") 
+    def __init__(self, log_level=logging.INFO):
+        # Set up logging
+        logging.basicConfig(
+            level=log_level,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        self.logger = logging.getLogger(__name__)
+        
+        # Initialize configuration
+        self.config = WarpConfig()
+        self.reports_dir = self.config.reports_dir
+        self.screenshots_dir = self.config.screenshots_dir
+        
+        # Create directories
         self.reports_dir.mkdir(exist_ok=True)
         self.screenshots_dir.mkdir(exist_ok=True)
+        
+        # Session tracking
         self.session_actions = []
+        
+        self.logger.info(f"WarpAPI initialized with executable: {self.config.warp_executable}")
         
     def _log_action(self, action, success, details=None):
         """Log action with timestamp"""
@@ -67,9 +98,11 @@ class WarpAPI:
         filename = self.screenshots_dir / f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
         try:
             screenshot = pyautogui.screenshot()
-            screenshot.save(str(filename))
-            return str(filename)
+            screenshot.save(filename)  # Path objects work directly
+            self.logger.debug(f"Screenshot saved: {filename}")
+            return filename  # Return Path object consistently
         except Exception as e:
+            self.logger.error(f"Screenshot failed: {e}")
             print(f"Screenshot failed: {e}")
             return None
             
@@ -96,17 +129,51 @@ class WarpAPI:
             except:
                 pass
                 
-    def _verify_warp_running(self):
-        """Check if Warp is running"""
+    def _get_warp_processes(self):
+        """Get list of Warp processes"""
         try:
+            result = subprocess.run(['pgrep', '-f', 'warp'], capture_output=True, text=True)
+            processes = result.stdout.strip().split('\n') if result.stdout.strip() else []
+            self.logger.debug(f"Found Warp processes: {processes}")
+            return processes
+        except Exception as e:
+            self.logger.error(f"Failed to get Warp processes: {e}")
+            return []
+            
+    def _verify_warp_running(self):
+        """Check if Warp is running using consistent method"""
+        try:
+            # First try to find specific warp-terminal process
+            result = subprocess.run(['pgrep', '-f', 'warp-terminal'], capture_output=True)
+            if result.returncode == 0:
+                self.logger.debug("Found warp-terminal process")
+                return True
+            
+            # Fallback to generic warp process
             result = subprocess.run(['pgrep', '-f', 'warp'], capture_output=True)
-            return result.returncode == 0
-        except:
+            is_running = result.returncode == 0
+            self.logger.debug(f"Warp running status: {is_running}")
+            return is_running
+        except Exception as e:
+            self.logger.error(f"Failed to verify Warp running: {e}")
+            return False
+            
+    def safe_execute(self, operation_name, operation_func, *args):
+        """Consolidated error handling for all operations"""
+        try:
+            self.logger.info(f"Executing operation: {operation_name}")
+            result = operation_func(*args)
+            self._log_action(operation_name, True, {"result": str(result)})
+            return result
+        except Exception as e:
+            self.logger.error(f"Operation {operation_name} failed: {e}")
+            self._log_action(operation_name, False, {"error": str(e)})
             return False
             
     def _execute_action(self, action_name, action_func, *args):
         """Execute action with full safety and verification"""
         print(f"\n🔄 Executing: {action_name}")
+        self.logger.info(f"Starting action: {action_name}")
         
         # Lock input
         lock_pid = self._lock_input()
@@ -121,13 +188,17 @@ class WarpAPI:
             # After screenshot  
             after_shot = self._take_screenshot(f"after_{action_name}")
             
+            # Convert Path objects to strings for JSON serialization
+            details = {
+                "before_screenshot": str(before_shot) if before_shot else None,
+                "after_screenshot": str(after_shot) if after_shot else None
+            }
+            
             # Log result
-            return self._log_action(action_name, result, {
-                "before_screenshot": before_shot,
-                "after_screenshot": after_shot
-            })
+            return self._log_action(action_name, result, details)
             
         except Exception as e:
+            self.logger.error(f"Action {action_name} failed: {e}")
             return self._log_action(action_name, False, {"error": str(e)})
             
         finally:
@@ -139,10 +210,15 @@ class WarpAPI:
         """Launch Warp terminal window"""
         def _launch():
             try:
-                subprocess.Popen(['warp'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # Use the detected executable
+                self.logger.info(f"Launching Warp with executable: {self.config.warp_executable}")
+                subprocess.Popen([self.config.warp_executable], 
+                                stdout=subprocess.DEVNULL, 
+                                stderr=subprocess.DEVNULL)
                 time.sleep(3)  # Wait for launch
                 return self._verify_warp_running()
             except Exception as e:
+                self.logger.error(f"Launch failed: {e}")
                 print(f"Launch failed: {e}")
                 return False
                 

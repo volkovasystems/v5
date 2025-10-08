@@ -2,7 +2,7 @@
 
 **Pixel-perfect GUI automation for Warp terminal with comprehensive testing infrastructure**
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Testing](https://img.shields.io/badge/testing-BATS-orange.svg)](tests/)
 
@@ -111,8 +111,8 @@ api.run_basic_test()   # Run tests
 ## ⚠️ System Requirements
 
 ### **Recommended Host System**
-- **RAM**: 8GB+ total (6GB+ available recommended)
-- **CPU**: 4+ cores (Intel VT-x/AMD-V virtualization support required)
+- **RAM**: 6GB+ total (dynamic allocation: VM uses 1/3 of host RAM, min 2GB, max 6GB)
+- **CPU**: 2+ cores (Intel VT-x/AMD-V virtualization support required)
 - **Disk**: 20GB+ available space
 - **OS**: Linux with X11 (Ubuntu 20.04+)
 - **Virtualization**: Hardware virtualization enabled in BIOS
@@ -123,9 +123,9 @@ api.run_basic_test()   # Run tests
 - **Python**: 3.7+ with pip
 - **Git**: For repository cloning and version control
 
-### **VM Specifications** (Auto-configured)
-- **RAM**: 4GB allocated to VM
-- **CPUs**: 2 cores allocated to VM
+### **VM Specifications** (Auto-configured based on host)
+- **RAM**: Dynamic (1/3 of host RAM, minimum 2GB, maximum 6GB)
+- **CPUs**: Dynamic (half of host CPUs, minimum 1, maximum 4)
 - **OS**: Ubuntu 22.04 LTS with GNOME desktop
 - **Storage**: ~8GB for VM image + snapshots
 
