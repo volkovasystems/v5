@@ -83,6 +83,7 @@ cd <repository>/warp-api/tests
 ./test.sh clean-data basic   # Clean old test data (safe)
 ./test.sh clean-data full    # Clean all test data
 ./test.sh clean-vm           # Clean VM test data
+./test.sh clean-logs         # Clean all log files
 ./test.sh clean-snapshots    # Remove all VM snapshots
 ./test.sh clean-all          # Nuclear reset (destroys everything)
 ```
@@ -424,6 +425,16 @@ Provides an interactive menu with all clean options and safety confirmations.
 - Removes synced files and archives
 - **Destructive**: VM state, snapshots, and configuration are completely removed
 - **Fast reset**: Forces complete VM rebuild on next startup
+
+#### Clean All Log Files
+```bash
+./test.sh clean-logs
+```
+- Removes ALL contents of logs directory (preserves .gitkeep files)
+- Cleans log files, subdirectories, and all nested content
+- **Safe**: Preserves directory structure via .gitkeep files
+- **Fast**: Quick operation for log maintenance
+- **Thorough**: Removes hidden files and subdirectories
 
 #### Remove All VM Snapshots
 ```bash

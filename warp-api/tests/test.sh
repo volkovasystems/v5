@@ -54,6 +54,7 @@ COMMANDS:
   # Clean Commands:
   clean-data         Clean test data (basic|full)
   clean-vm           Clean VM data and .vagrant directory (destructive)
+  clean-logs         Clean all log files (preserves .gitkeep)
   clean-snapshots    Remove all VM snapshots
   clean-all          Full environment reset (nuclear)
 
@@ -122,7 +123,7 @@ parse_args() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            test|setup|clean|clean-data|clean-vm|clean-snapshots|clean-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
+            test|setup|clean|clean-data|clean-vm|clean-logs|clean-snapshots|clean-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
                 command="$1"
                 # For vm-snapshot and vm-restore, capture the snapshot name
                 if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
@@ -536,6 +537,10 @@ main() {
         clean-vm)
             print_header "Cleaning VM Test Data"
             clean_vm_data
+            ;;
+        clean-logs)
+            print_header "Cleaning Log Files"
+            clean_logs_data
             ;;
         clean-snapshots)
             print_header "Removing VM Snapshots"
