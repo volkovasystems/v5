@@ -646,6 +646,36 @@ clean_logs_data() {
 }
 
 #######################################
+# Clean reports directory (preserves .gitkeep)
+#######################################
+clean_reports_data() {
+    print_message "BLUE" "🧹 Cleaning reports directory..."
+    
+    if [[ -d "$REPORTS_DIR" ]]; then
+        # Find and preserve any .gitkeep files first
+        local gitkeep_files=()
+        while IFS= read -r -d '' file; do
+            gitkeep_files+=("$file")
+        done < <(find "$REPORTS_DIR" -name ".gitkeep" -print0 2>/dev/null)
+        
+        # Remove all contents of reports directory
+        rm -rf "$REPORTS_DIR"/* "$REPORTS_DIR"/.* 2>/dev/null || true
+        
+        # Restore .gitkeep files if any existed
+        for gitkeep_file in "${gitkeep_files[@]}"; do
+            if [[ -n "$gitkeep_file" ]]; then
+                mkdir -p "$(dirname "$gitkeep_file")"
+                touch "$gitkeep_file"
+            fi
+        done
+        
+        print_message "GREEN" "✅ Reports directory cleaned (preserved .gitkeep files)"
+    else
+        print_message "YELLOW" "📭 No reports directory found"
+    fi
+}
+
+#######################################
 # Reset VM to clean snapshot (VM reset)
 #######################################
 reset_vm_to_clean() {
@@ -890,6 +920,7 @@ interactive_clean() {
         print_message "BLUE" "   ./test.sh clean-data [basic|full]"
         print_message "BLUE" "   ./test.sh clean-vm"
         print_message "BLUE" "   ./test.sh clean-logs"
+        print_message "BLUE" "   ./test.sh clean-reports"
         print_message "BLUE" "   ./test.sh vm-reset"
         print_message "BLUE" "   ./test.sh vm-rebuild --force"
         print_message "BLUE" "   ./test.sh clean-all --force"
@@ -903,14 +934,15 @@ interactive_clean() {
     echo "2) Full test data cleaning"
     echo "3) VM data + .vagrant directory cleaning (destructive)"
     echo "4) Clean all log files (preserves .gitkeep)"
-    echo "5) Reset VM to clean state"
-    echo "6) Remove all VM snapshots"
-    echo "7) Rebuild VM from scratch"
-    echo "8) Full environment reset (nuclear)"
-    echo "9) Cancel"
+    echo "5) Clean all report files (preserves .gitkeep)"
+    echo "6) Reset VM to clean state"
+    echo "7) Remove all VM snapshots"
+    echo "8) Rebuild VM from scratch"
+    echo "9) Full environment reset (nuclear)"
+    echo "10) Cancel"
     echo ""
     
-    read -p "Enter your choice [1-9]: " choice
+    read -p "Enter your choice [1-10]: " choice
     
     case $choice in
         1)
@@ -926,9 +958,12 @@ interactive_clean() {
             clean_logs_data
             ;;
         5)
-            reset_vm_to_clean
+            clean_reports_data
             ;;
         6)
+            reset_vm_to_clean
+            ;;
+        7)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Removing all VM snapshots"
                 clean_vm_snapshots
@@ -942,7 +977,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        7)
+        8)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Rebuilding VM"
                 rebuild_vm
@@ -956,7 +991,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        8)
+        9)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Performing full environment reset"
                 reset_full_environment
@@ -970,7 +1005,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        9)
+        10)
             print_message "BLUE" "Operation cancelled"
             ;;
         *)
