@@ -933,3 +933,295 @@ run_bats_tests() {
         return $exit_code
     fi
 }
+
+#######################################
+# System Capability Checking Functions
+#######################################
+
+#######################################
+# Check if the host system can handle VirtualBox VM requirements
+# Returns: 0=all good, 1=critical issues, 2=warnings only
+#######################################
+check_system_capabilities() {
+    local min_memory_gb=8
+    local min_free_memory_gb=6  
+    local min_cpus=4
+    local min_disk_space_gb=20
+    local vm_memory_mb=4096
+    local vm_cpus=2
+    
+    print_header "System Capability Check"
+    print_message "BLUE" "🔍 Checking if host system can handle VirtualBox testing..."
+    echo
+    
+    local issues=0
+    local warnings=0
+    local report_file="$(pwd)/system_capability_report_$(date +%Y%m%d_%H%M%S).txt"
+    
+    {
+        echo "WARP API VIRTUALBOX SYSTEM CAPABILITY REPORT"
+        echo "Generated: $(date)"
+        echo "Host: $(hostname) ($(uname -s) $(uname -r))"
+        echo "==========================================="
+        echo
+        
+        # Memory Check
+        echo "📊 MEMORY ANALYSIS"
+        echo "------------------"
+        local total_memory_kb=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+        local available_memory_kb=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+        local total_memory_gb=$((total_memory_kb / 1024 / 1024))
+        local available_memory_gb=$((available_memory_kb / 1024 / 1024))
+        
+        echo "Total RAM: ${total_memory_gb} GB (${total_memory_kb} KB)"
+        echo "Available RAM: ${available_memory_gb} GB (${available_memory_kb} KB)"
+        echo "VM Requirements: ${vm_memory_mb} MB ($(($vm_memory_mb / 1024)) GB)"
+        echo "Recommended Host RAM: ${min_memory_gb} GB minimum"
+        echo "Recommended Available: ${min_free_memory_gb} GB minimum"
+        
+        if [ $total_memory_gb -lt $min_memory_gb ]; then
+            echo "❌ CRITICAL: Insufficient total RAM"
+            echo "   - Current: ${total_memory_gb} GB"
+            echo "   - Required: ${min_memory_gb} GB"
+            echo "   - Action: Add more RAM or use a machine with at least ${min_memory_gb}GB"
+            issues=$((issues + 1))
+        elif [ $available_memory_gb -lt $min_free_memory_gb ]; then
+            echo "⚠️ WARNING: Low available RAM"
+            echo "   - Available: ${available_memory_gb} GB"
+            echo "   - Recommended: ${min_free_memory_gb} GB"
+            echo "   - Action: Close other applications or add more RAM"
+            warnings=$((warnings + 1))
+        else
+            echo "✅ RAM: Sufficient (${total_memory_gb} GB total, ${available_memory_gb} GB available)"
+        fi
+        echo
+        
+        # CPU Check
+        echo "⚙️ CPU ANALYSIS"
+        echo "---------------"
+        local cpu_cores=$(nproc)
+        local cpu_model=$(grep "model name" /proc/cpuinfo | head -1 | cut -d: -f2 | xargs)
+        
+        echo "CPU Model: ${cpu_model}"
+        echo "CPU Cores: ${cpu_cores}"
+        echo "VM Requirements: ${vm_cpus} cores"
+        echo "Recommended Host: ${min_cpus} cores minimum"
+        
+        if [ $cpu_cores -lt $min_cpus ]; then
+            echo "⚠️ WARNING: Low CPU core count"
+            echo "   - Current: ${cpu_cores} cores"
+            echo "   - Recommended: ${min_cpus} cores"
+            echo "   - Action: VM may run slowly. Consider upgrading CPU or reducing VM cores"
+            warnings=$((warnings + 1))
+        elif [ $cpu_cores -lt $vm_cpus ]; then
+            echo "⚠️ WARNING: CPU cores less than VM allocation"
+            echo "   - Available: ${cpu_cores} cores"
+            echo "   - VM needs: ${vm_cpus} cores"
+            echo "   - Action: Performance may be degraded"
+            warnings=$((warnings + 1))
+        else
+            echo "✅ CPU: Sufficient (${cpu_cores} cores available)"
+        fi
+        echo
+        
+        # Virtualization Support Check
+        echo "🔧 VIRTUALIZATION SUPPORT"
+        echo "------------------------"
+        if grep -q "vmx\|svm" /proc/cpuinfo; then
+            local virt_type=$(grep -o "vmx\|svm" /proc/cpuinfo | head -1)
+            echo "✅ Hardware virtualization: Supported (${virt_type})"
+            
+            # Check if KVM is available
+            if [ -e /dev/kvm ]; then
+                echo "✅ KVM: Available (/dev/kvm exists)"
+            else
+                echo "⚠️ WARNING: KVM not available"
+                echo "   - Action: May need to enable in BIOS or install kvm modules"
+                warnings=$((warnings + 1))
+            fi
+        else
+            echo "❌ CRITICAL: Hardware virtualization not supported or not enabled"
+            echo "   - Action: Enable VT-x/AMD-V in BIOS settings"
+            echo "   - Without this, VirtualBox performance will be severely impacted"
+            issues=$((issues + 1))
+        fi
+        echo
+        
+        # Disk Space Check
+        echo "💾 DISK SPACE ANALYSIS"
+        echo "---------------------"
+        local disk_info=$(df -h . | tail -1)
+        local available_space=$(echo $disk_info | awk '{print $4}' | sed 's/[^0-9.]*//g')
+        local available_unit=$(echo $disk_info | awk '{print $4}' | sed 's/[0-9.]*//g')
+        local filesystem=$(echo $disk_info | awk '{print $1}')
+        local total_space=$(echo $disk_info | awk '{print $2}')
+        
+        echo "Filesystem: ${filesystem}"
+        echo "Total space: ${total_space}"
+        echo "Available space: ${available_space}${available_unit}"
+        echo "VM Requirements: ~${min_disk_space_gb} GB (VM image + snapshots + test data)"
+        
+        # Convert to GB for comparison
+        local available_gb=0
+        if [[ $available_unit == "G" ]]; then
+            available_gb=${available_space%.*}  # Remove decimal part
+        elif [[ $available_unit == "T" ]]; then
+            available_gb=$((${available_space%.*} * 1024))
+        elif [[ $available_unit == "M" ]]; then
+            available_gb=$((${available_space%.*} / 1024))
+        fi
+        
+        if [ "$available_gb" -lt "$min_disk_space_gb" ]; then
+            echo "❌ CRITICAL: Insufficient disk space"
+            echo "   - Available: ${available_space}${available_unit}"
+            echo "   - Required: ${min_disk_space_gb} GB minimum"
+            echo "   - Action: Free up disk space or use a drive with more space"
+            issues=$((issues + 1))
+        else
+            echo "✅ Disk space: Sufficient (${available_space}${available_unit} available)"
+        fi
+        echo
+        
+        # VirtualBox Check
+        echo "📦 VIRTUALBOX INSTALLATION"
+        echo "-------------------------"
+        if command -v VBoxManage >/dev/null 2>&1; then
+            local vbox_version=$(VBoxManage --version 2>/dev/null | head -1)
+            echo "✅ VirtualBox: Installed (${vbox_version})"
+            
+            # Check VirtualBox kernel modules
+            if lsmod | grep -q vboxdrv; then
+                echo "✅ VirtualBox kernel modules: Loaded"
+            else
+                echo "⚠️ WARNING: VirtualBox kernel modules not loaded"
+                echo "   - Action: Run 'sudo modprobe vboxdrv' or reinstall VirtualBox"
+                warnings=$((warnings + 1))
+            fi
+        else
+            echo "❌ CRITICAL: VirtualBox not installed"
+            echo "   - Action: Install VirtualBox 6.1+ from https://www.virtualbox.org/"
+            echo "   - Ubuntu: sudo apt install virtualbox virtualbox-ext-pack"
+            issues=$((issues + 1))
+        fi
+        echo
+        
+        # Vagrant Check
+        echo "📦 VAGRANT INSTALLATION"
+        echo "----------------------"
+        if command -v vagrant >/dev/null 2>&1; then
+            local vagrant_version=$(vagrant --version 2>/dev/null)
+            echo "✅ Vagrant: Installed (${vagrant_version})"
+        else
+            echo "❌ CRITICAL: Vagrant not installed"
+            echo "   - Action: Install Vagrant 2.2+ from https://www.vagrantup.com/"
+            echo "   - Ubuntu: sudo apt install vagrant"
+            issues=$((issues + 1))
+        fi
+        echo
+        
+        # Display Checks (for GUI VM)
+        echo "🖥️ DISPLAY SYSTEM"
+        echo "----------------"
+        if [ -n "$DISPLAY" ]; then
+            echo "✅ X11 Display: Available ($DISPLAY)"
+        else
+            echo "⚠️ WARNING: No X11 display detected"
+            echo "   - Action: Ensure you're running in a graphical environment"
+            echo "   - For headless: VirtualBox can still run but GUI testing may fail"
+            warnings=$((warnings + 1))
+        fi
+        
+        if command -v xdpyinfo >/dev/null 2>&1; then
+            local display_info=$(xdpyinfo 2>/dev/null | grep dimensions | head -1 || echo "Display info unavailable")
+            echo "Display info: ${display_info}"
+        fi
+        echo
+        
+        # Summary
+        echo "📋 CAPABILITY SUMMARY"
+        echo "===================="
+        echo "Critical Issues: ${issues}"
+        echo "Warnings: ${warnings}"
+        echo
+        
+        if [ $issues -eq 0 ] && [ $warnings -eq 0 ]; then
+            echo "🎉 EXCELLENT: Your system is fully capable of running VirtualBox testing"
+            echo "   You can proceed with confidence using the VM testing environment."
+        elif [ $issues -eq 0 ]; then
+            echo "✅ GOOD: Your system can run VirtualBox testing"
+            echo "   There are ${warnings} warning(s) that may affect performance."
+            echo "   Consider addressing them for optimal experience."
+        else
+            echo "❌ ISSUES FOUND: ${issues} critical issue(s) must be resolved"
+            echo "   VirtualBox testing may fail or perform poorly."
+            echo "   Please address critical issues before proceeding."
+        fi
+        
+    } | tee "$report_file"
+    
+    echo
+    print_message "BLUE" "📄 Detailed report saved: $report_file"
+    
+    # Display console summary
+    echo
+    if [ $issues -eq 0 ] && [ $warnings -eq 0 ]; then
+        print_message "GREEN" "🎉 System fully ready for VirtualBox testing!"
+    elif [ $issues -eq 0 ]; then
+        print_message "YELLOW" "⚠️ System ready with ${warnings} warning(s)"
+    else
+        print_message "RED" "❌ ${issues} critical issue(s) found - please fix before testing"
+    fi
+    
+    # Return appropriate exit code
+    if [ $issues -gt 0 ]; then
+        return 1  # Critical issues found
+    elif [ $warnings -gt 0 ]; then
+        return 2  # Warnings found
+    else
+        return 0  # All good
+    fi
+}
+
+#######################################
+# Quick system capability check (minimal output)
+#######################################
+check_system_quick() {
+    local total_memory_gb=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 / 1024))
+    local cpu_cores=$(nproc)
+    local issues=0
+    
+    print_message "BLUE" "🔍 Quick system check..."
+    
+    # Basic checks
+    if [ $total_memory_gb -lt 8 ]; then
+        print_message "RED" "❌ RAM: ${total_memory_gb}GB (need 8GB+)"
+        issues=$((issues + 1))
+    fi
+    
+    if [ $cpu_cores -lt 4 ]; then
+        print_message "YELLOW" "⚠️ CPU: ${cpu_cores} cores (recommend 4+)"
+    fi
+    
+    if ! command -v VBoxManage >/dev/null 2>&1; then
+        print_message "RED" "❌ VirtualBox not installed"
+        issues=$((issues + 1))
+    fi
+    
+    if ! command -v vagrant >/dev/null 2>&1; then
+        print_message "RED" "❌ Vagrant not installed"
+        issues=$((issues + 1))
+    fi
+    
+    if ! grep -q "vmx\|svm" /proc/cpuinfo; then
+        print_message "RED" "❌ Hardware virtualization not available"
+        issues=$((issues + 1))
+    fi
+    
+    if [ $issues -eq 0 ]; then
+        print_message "GREEN" "✅ System ready for VirtualBox testing"
+        return 0
+    else
+        print_message "RED" "❌ ${issues} critical issues found. Run './test.sh check-system' for details."
+        return 1
+    fi
+}

@@ -26,19 +26,21 @@ Usage: $0 [OPTIONS] [COMMAND]
 Warp API Test Runner - Runs pixel-perfect Warp Terminal API tests
 
 COMMANDS:
-  test          Run all tests (default)
-  setup         Set up test environment only
-  cleanup       Clean up test artifacts (interactive menu)
-  vm-start      Start the VM
-  vm-stop       Stop the VM
-  vm-status     Show VM status
-  vm-init       Initialize VM for first time (with snapshot)
-  vm-reset      Reset VM to clean snapshot state
-  vm-rebuild    Destroy and rebuild VM from scratch
-  vm-snapshot   Create a new VM snapshot
-  vm-restore    Restore VM from snapshot
-  vm-list       List available VM snapshots
-  sync          Sync API file from parent directory
+  test              Run all tests (default)
+  setup             Set up test environment only
+  cleanup           Clean up test artifacts (interactive menu)
+  check-system      Check host system capability for VirtualBox testing
+  check-system-quick Quick system capability check
+  vm-start          Start the VM
+  vm-stop           Stop the VM
+  vm-status         Show VM status
+  vm-init           Initialize VM for first time (with snapshot)
+  vm-reset          Reset VM to clean snapshot state
+  vm-rebuild        Destroy and rebuild VM from scratch
+  vm-snapshot       Create a new VM snapshot
+  vm-restore        Restore VM from snapshot
+  vm-list           List available VM snapshots
+  sync              Sync API file from parent directory
   
   # Repository Integration:
   vm-pristine   Create pristine snapshot for repository commit
@@ -59,11 +61,13 @@ OPTIONS:
   -h, --help            Show this help message
 
 EXAMPLES:
-  $0                    # Run all tests in VM with TAP output
-  $0 test -f pretty     # Run tests with pretty output
-  $0 vm-init            # Initialize VM for first time (one-time setup)
-  $0 setup              # Set up test environment only
-  $0 cleanup            # Interactive cleanup menu
+  $0                       # Run all tests in VM with TAP output
+  $0 test -f pretty        # Run tests with pretty output
+  $0 check-system          # Check if system can handle VirtualBox testing
+  $0 check-system-quick    # Quick system capability check
+  $0 vm-init               # Initialize VM for first time (one-time setup)
+  $0 setup                 # Set up test environment only
+  $0 cleanup               # Interactive cleanup menu
   $0 cleanup-data basic # Basic test data cleanup
   $0 cleanup-data full  # Full test data cleanup
   $0 vm-reset           # Reset VM to clean state
@@ -108,7 +112,7 @@ parse_args() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|vm-start|vm-stop|vm-status|vm-init|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
+            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
                 command="$1"
                 # For vm-snapshot and vm-restore, capture the snapshot name
                 if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
@@ -570,6 +574,32 @@ main() {
                 fi
             fi
             ;;
+        check-system)
+            print_header "System Capability Check"
+            if check_system_capabilities; then
+                print_message "GREEN" "🎉 System is fully ready for VirtualBox testing!"
+                exit 0
+            else
+                local exit_code=$?
+                if [[ $exit_code -eq 1 ]]; then
+                    print_message "RED" "❌ Critical issues found - please address before testing"
+                    exit 1
+                else
+                    print_message "YELLOW" "⚠️ System can run tests but has warnings - consider addressing for optimal performance"
+                    exit 0
+                fi
+            fi
+            ;;
+        check-system-quick)
+            print_header "Quick System Check"
+            if check_system_quick; then
+                print_message "GREEN" "✅ System ready for VirtualBox testing!"
+                exit 0
+            else
+                print_message "RED" "❌ System issues found - run './test.sh check-system' for details"
+                exit 1
+            fi
+            ;;
         sync)
             sync_api_file
             ;;
@@ -580,6 +610,21 @@ main() {
             local test_exit_code=0
             
             if [[ "$TEST_MODE" == "vm" ]]; then
+                # Quick system capability check before VM operations
+                print_message "BLUE" "🔍 Checking system capability for VM testing..."
+                if ! check_system_quick; then
+                    if [[ "$TEST_FORCE" == "true" ]]; then
+                        print_message "YELLOW" "🚑 Force mode: Proceeding despite system capability warnings"
+                    else
+                        print_message "RED" "❌ System capability issues detected!"
+                        print_message "BLUE" "📄 Run './test.sh check-system' for detailed analysis"
+                        print_message "BLUE" "💡 Or use '--force' to proceed anyway"
+                        exit 1
+                    fi
+                else
+                    print_message "GREEN" "✅ System capability check passed"
+                fi
+                echo
                 # Try to use pristine snapshot first for fastest startup
                 if snapshot_exists "pristine" && ! snapshot_exists "clean"; then
                     print_message "BLUE" "📸 Using pristine snapshot for fastest startup..."
