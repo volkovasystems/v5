@@ -1,0 +1,188 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Persistent VirtualBox setup for Warp Terminal API testing
+# One-time setup with snapshot support for reusable testing
+
+Vagrant.configure("2") do |config|
+  # Ubuntu 22.04 LTS - reliable base with GUI support
+  config.vm.box = "ubuntu/jammy64"
+  config.vm.hostname = "warp-test-vm"
+  
+  # Enable SSH agent forwarding and keep SSH connection alive
+  config.ssh.forward_agent = true
+  config.ssh.keep_alive = true
+
+  # VirtualBox configuration - optimized for persistence and performance
+  config.vm.provider "virtualbox" do |vb|
+    vb.name = "warp-api-testbed"
+    vb.memory = 4096  # 4GB RAM - better for persistent VM with caching
+    vb.cpus = 2       # 2 cores for responsiveness
+    vb.gui = true     # Essential for GUI automation
+    
+    # Display settings for automation
+    vb.customize ["modifyvm", :id, "--graphicscontroller", "vmsvga"]
+    vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
+    vb.customize ["modifyvm", :id, "--vram", "128"]
+    vb.customize ["modifyvm", :id, "--clipboard-mode", "bidirectional"]
+    vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+    
+    # Network optimizations
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
+    
+    # Performance optimizations for persistent VM
+    vb.customize ["modifyvm", :id, "--ioapic", "on"]
+    vb.customize ["modifyvm", :id, "--paravirtprovider", "kvm"]
+    vb.customize ["modifyvm", :id, "--hwvirtex", "on"]
+    vb.customize ["modifyvm", :id, "--nestedpaging", "on"]
+    
+    # Enable snapshot support
+    vb.customize ["modifyvm", :id, "--snapshotfolder", "snapshots"]
+  end
+
+  # One-time setup for persistent VM - only runs on first provision
+  # Use 'vagrant provision --provision-with initial_setup' to re-run
+  config.vm.provision "initial_setup", type: "shell", run: "once", inline: <<-SHELL
+    export DEBIAN_FRONTEND=noninteractive
+    
+    # Update system
+    apt-get update -qq
+    
+    # Minimal desktop environment (lighter than full ubuntu-desktop)
+    apt-get install -y --no-install-recommends \
+      ubuntu-desktop-minimal \
+      firefox \
+      curl \
+      wget \
+      git \
+      python3 \
+      python3-pip \
+      python3-venv
+    
+    # GUI automation tools
+    apt-get install -y \
+      xdotool \
+      wmctrl \
+      xtrlock \
+      imagemagick \
+      scrot
+    
+    # Install Warp Terminal
+    curl -fsSL https://releases.warp.dev/linux/v0.2024.10.08.08.02.stable_00/warp-terminal_0.2024.10.08.08.02.stable.00_amd64.deb -o warp-terminal.deb || \
+    curl -fsSL https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb
+    
+    if [ -f warp-terminal.deb ]; then
+      dpkg -i warp-terminal.deb || apt-get install -f -y
+      rm warp-terminal.deb
+    else
+      echo "Warning: Could not download Warp Terminal"
+    fi
+    
+    # Python automation packages
+    pip3 install --user pyautogui opencv-python pillow numpy
+    
+    # Create automation user directories
+    sudo -u vagrant mkdir -p /home/vagrant/warp-testing
+    
+    # Copy API file and test infrastructure to VM
+    cp /vagrant/warp_api.py /home/vagrant/warp-testing/
+    cp /vagrant/test_helper.bash /home/vagrant/warp-testing/ 2>/dev/null || true
+    chmod +x /home/vagrant/warp-testing/warp_api.py
+    chown vagrant:vagrant /home/vagrant/warp-testing/warp_api.py
+    
+    # Create organized directory structure in VM
+    mkdir -p /home/vagrant/warp-testing/{logs,reports,results,screenshots}
+    chown -R vagrant:vagrant /home/vagrant/warp-testing
+    
+    # Create helper script to run tests with proper structure
+    cat > /home/vagrant/warp-testing/run_test.sh << 'EOF'
+#!/bin/bash
+echo "🔥 Running Warp API tests in VM..."
+echo "Time: $(date)"
+echo "Environment: $(uname -a)"
+
+cd /home/vagrant/warp-testing
+
+# Set up display environment
+export DISPLAY=:0
+
+# Create log directory structure
+mkdir -p logs reports results screenshots
+
+# Run tests with logging
+echo "🧪 Starting Warp API tests..."
+if [[ -f warp_api.py ]]; then
+    python3 warp_api.py test 2>&1 | tee "logs/test_$(date +%Y%m%d_%H%M%S).log"
+    exit_code=${PIPESTATUS[0]}
+    echo "📊 Test completed with exit code: $exit_code"
+else
+    echo "❌ warp_api.py not found!"
+    exit 1
+fi
+
+echo "✅ Tests completed!"
+EOF
+    
+    echo "✅ Warp API VM base setup complete!"
+    echo "📸 Creating clean snapshot after initial setup..."
+    
+  SHELL
+  
+  # Test environment provisioner - runs every time tests are executed
+  # This sets up clean test data and can be run repeatedly
+  config.vm.provision "test_setup", type: "shell", run: "never", inline: <<-SHELL
+    echo "🧪 Setting up test environment..."
+    
+    # Clean any previous test data
+    cd /home/vagrant/warp-testing
+    rm -rf logs/* reports/* results/* screenshots/* 2>/dev/null || true
+    
+    # Ensure directories exist with proper permissions
+    mkdir -p logs reports results screenshots
+    chown -R vagrant:vagrant logs reports results screenshots
+    
+    # Copy latest API file from shared folder
+    if [[ -f /vagrant/warp_api.py ]]; then
+      cp /vagrant/warp_api.py ./
+      chmod +x warp_api.py
+      chown vagrant:vagrant warp_api.py
+    fi
+    
+    # Copy test helpers if available
+    if [[ -f /vagrant/test_helper.bash ]]; then
+      cp /vagrant/test_helper.bash ./
+      chown vagrant:vagrant test_helper.bash
+    fi
+    
+    echo "✅ Test environment ready for execution"
+    
+  SHELL
+  
+  # Test cleanup provisioner - cleans up after test execution
+  config.vm.provision "test_cleanup", type: "shell", run: "never", inline: <<-SHELL
+    echo "🧹 Cleaning up test environment..."
+    
+    # Kill any running Warp processes
+    pkill -f warp 2>/dev/null || true
+    pkill -f xtrlock 2>/dev/null || true
+    
+    # Archive test results to shared folder for retrieval
+    cd /home/vagrant/warp-testing
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    
+    # Create results archive
+    if [[ -n "$(ls logs/*.log 2>/dev/null || true)" ]] || [[ -n "$(ls reports/* 2>/dev/null || true)" ]]; then
+      tar -czf "/vagrant/test_results_${timestamp}.tar.gz" \
+        logs/ reports/ results/ screenshots/ 2>/dev/null || true
+      echo "📦 Test results archived to: test_results_${timestamp}.tar.gz"
+    fi
+    
+    # Clean test directories but keep structure
+    find logs reports results screenshots -type f -delete 2>/dev/null || true
+    
+    echo "✅ Test environment cleaned"
+    
+  SHELL
+end

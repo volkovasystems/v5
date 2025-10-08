@@ -1,0 +1,20 @@
+# Test results and temporary files
+results/
+test_reports/
+test_screenshots/
+*.tmp
+*.log
+
+# Test result archives
+test_results_*.tar.gz
+
+# Synced API file (copied from parent directory during testing)
+warp_api.py
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Vagrant
+.vagrant/
+*.log

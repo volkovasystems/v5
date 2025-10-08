@@ -1,0 +1,531 @@
+#!/bin/bash
+#
+# Warp API Test Runner
+# Main script for running all Warp API tests in isolated VM environment
+#
+
+set -e
+
+# Load test helper functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/test_helper.bash"
+
+# Configuration
+BATS_FILE="warp_api.bats"
+DEFAULT_MODE="vm"
+DEFAULT_FORMAT="tap"
+CLEANUP_LEVEL="basic"
+
+#######################################
+# Display usage information
+#######################################
+usage() {
+    cat << EOF
+Usage: $0 [OPTIONS] [COMMAND]
+
+Warp API Test Runner - Runs pixel-perfect Warp Terminal API tests
+
+COMMANDS:
+  test          Run all tests (default)
+  setup         Set up test environment only
+  cleanup       Clean up test artifacts (interactive menu)
+  vm-start      Start the VM
+  vm-stop       Stop the VM
+  vm-status     Show VM status
+  vm-init       Initialize VM for first time (with snapshot)
+  vm-reset      Reset VM to clean snapshot state
+  vm-rebuild    Destroy and rebuild VM from scratch
+  vm-snapshot   Create a new VM snapshot
+  vm-restore    Restore VM from snapshot
+  vm-list       List available VM snapshots
+  sync          Sync API file from parent directory
+  
+  # Cleanup Commands:
+  cleanup-data       Clean test data (basic|full)
+  cleanup-vm         Clean VM test data
+  cleanup-snapshots  Remove all VM snapshots
+  cleanup-all        Full environment reset (nuclear)
+
+OPTIONS:
+  -m, --mode MODE       Test mode: vm|host (default: vm)
+  -f, --format FORMAT   Output format: tap|pretty (default: tap)
+  -c, --cleanup LEVEL   Cleanup level: basic|full (default: basic)
+  -v, --verbose         Enable verbose output
+  -h, --help            Show this help message
+
+EXAMPLES:
+  $0                    # Run all tests in VM with TAP output
+  $0 test -f pretty     # Run tests with pretty output
+  $0 vm-init            # Initialize VM for first time (one-time setup)
+  $0 setup              # Set up test environment only
+  $0 cleanup            # Interactive cleanup menu
+  $0 cleanup-data basic # Basic test data cleanup
+  $0 cleanup-data full  # Full test data cleanup
+  $0 vm-reset           # Reset VM to clean state
+  $0 vm-rebuild         # Rebuild VM from scratch
+  $0 cleanup-all        # Nuclear reset (destroys everything)
+  $0 vm-snapshot clean  # Create 'clean' snapshot
+  $0 vm-restore clean   # Restore from 'clean' snapshot
+  $0 vm-list            # List available snapshots
+
+ENVIRONMENT:
+  The script automatically:
+  - Syncs warp_api.py from parent directory
+  - Ensures VM is running (in vm mode)
+  - Waits for GUI to be ready
+  - Runs BATS tests with proper logging
+  - Archives results for analysis
+
+EOF
+}
+
+#######################################
+# Parse command line arguments
+#######################################
+parse_args() {
+    local command=""
+    local mode="$DEFAULT_MODE"
+    local format="$DEFAULT_FORMAT"
+    local cleanup="$CLEANUP_LEVEL"
+    local verbose=false
+    
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|vm-start|vm-stop|vm-status|vm-init|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|sync)
+                command="$1"
+                # For vm-snapshot and vm-restore, capture the snapshot name
+                if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
+                    shift
+                    if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+                        export SNAPSHOT_NAME="$1"
+                        shift
+                    else
+                        export SNAPSHOT_NAME="clean"
+                    fi
+                # For cleanup-data, capture the level
+                elif [[ "$1" == "cleanup-data" ]]; then
+                    shift
+                    if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+                        export CLEANUP_DATA_LEVEL="$1"
+                        shift
+                    else
+                        export CLEANUP_DATA_LEVEL="basic"
+                    fi
+                else
+                    shift
+                fi
+                ;;
+            -m|--mode)
+                mode="$2"
+                shift 2
+                ;;
+            -f|--format)
+                format="$2"
+                shift 2
+                ;;
+            -c|--cleanup)
+                cleanup="$2"
+                shift 2
+                ;;
+            -v|--verbose)
+                verbose=true
+                shift
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                print_message "RED" "❌ Unknown option: $1"
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Default command is test
+    command="${command:-test}"
+    
+    # Validate arguments
+    case "$mode" in
+        vm|host) ;;
+        *) 
+            print_message "RED" "❌ Invalid mode: $mode"
+            exit 1
+            ;;
+    esac
+    
+    case "$format" in
+        tap|pretty) ;;
+        *)
+            print_message "RED" "❌ Invalid format: $format"
+            exit 1
+            ;;
+    esac
+    
+    case "$cleanup" in
+        basic|full) ;;
+        *)
+            print_message "RED" "❌ Invalid cleanup level: $cleanup"
+            exit 1
+            ;;
+    esac
+    
+    # Set global variables
+    export TEST_COMMAND="$command"
+    export TEST_MODE="$mode"
+    export TEST_FORMAT="$format"
+    export TEST_CLEANUP="$cleanup"
+    export TEST_VERBOSE="$verbose"
+}
+
+#######################################
+# Set up test environment
+#######################################
+setup_environment() {
+    print_header "Setting up Test Environment"
+    
+    # Ensure directories exist
+    ensure_directories
+    
+    # Check dependencies
+    if ! check_dependencies; then
+        print_message "RED" "❌ Please install missing dependencies and try again"
+        exit 1
+    fi
+    
+    # Sync API file
+    if ! sync_api_file; then
+        print_message "RED" "❌ Failed to sync API file"
+        exit 1
+    fi
+    
+    # Clean up previous artifacts
+    cleanup_artifacts "$TEST_CLEANUP"
+    
+    print_message "GREEN" "✅ Test environment set up successfully"
+}
+
+#######################################
+# Set up VM environment (persistent approach)
+#######################################
+setup_vm_environment() {
+    print_header "Setting up VM Environment"
+    
+    # Check if clean snapshot exists
+    if snapshot_exists "clean"; then
+        print_message "BLUE" "🔄 Restoring from clean snapshot..."
+        if restore_vm_snapshot "clean"; then
+            # Start VM after restore
+            if ! ensure_vm_running; then
+                print_message "RED" "❌ Failed to start VM after snapshot restore"
+                exit 1
+            fi
+        else
+            print_message "YELLOW" "⚠️ Failed to restore snapshot, using current VM state"
+            if ! ensure_vm_running; then
+                exit 1
+            fi
+        fi
+    else
+        print_message "YELLOW" "⚠️ No 'clean' snapshot found, using current VM state"
+        print_message "BLUE" "💡 Consider running: ./test.sh vm-init to create a clean base"
+        
+        # Ensure VM is running
+        if ! ensure_vm_running; then
+            print_message "RED" "❌ Failed to start VM"
+            exit 1
+        fi
+    fi
+    
+    # Wait for GUI to be ready
+    if ! wait_for_vm_gui; then
+        print_message "RED" "❌ VM GUI not ready"
+        exit 1
+    fi
+    
+    # Setup clean test environment
+    if ! setup_vm_test_environment; then
+        print_message "RED" "❌ Failed to set up test environment"
+        exit 1
+    fi
+    
+    print_message "GREEN" "✅ VM environment ready for testing"
+}
+
+#######################################
+# Run tests in VM mode
+#######################################
+run_vm_tests() {
+    print_header "Running Tests in VM"
+    
+    local session_log=$(create_session_log)
+    local timestamp=$(timestamp)
+    
+    print_message "BLUE" "📝 Session log: $session_log"
+    
+    # Create VM test script
+    local vm_script="$VM_TEST_DIR/run_vm_tests.sh"
+    vm_exec "cat > '$vm_script' << 'VMEOF'
+#!/bin/bash
+set -e
+
+cd '$VM_TEST_DIR'
+export DISPLAY=:0
+
+echo \"Running Warp API tests in VM at \$(date)\"
+echo \"Environment: \$(uname -a)\"
+echo \"Python: \$(python3 --version)\"
+echo \"Current directory: \$(pwd)\"
+echo \"Files available:\"
+ls -la
+
+# Check if GUI is available
+if ! pgrep -x 'gnome-shell\|gdm\|Xorg' >/dev/null; then
+    echo \"❌ No GUI environment detected\"
+    exit 1
+fi
+
+# Run the actual tests
+echo \"🧪 Starting Warp API tests...\"
+if [[ -f warp_api.py ]]; then
+    python3 warp_api.py test 2>&1 | tee test_vm_${timestamp}.log
+    exit_code=\\\${PIPESTATUS[0]}
+    
+    echo \"📊 Test completed with exit code: \\\$exit_code\"
+    echo \"=== TEST SUMMARY ===\" >> test_summary_${timestamp}.txt
+    echo \"Date: \$(date)\" >> test_summary_${timestamp}.txt
+    echo \"VM: \$(hostname)\" >> test_summary_${timestamp}.txt
+    echo \"Exit code: \\\$exit_code\" >> test_summary_${timestamp}.txt
+    
+    exit \\\$exit_code
+else
+    echo \"❌ warp_api.py not found!\"
+    exit 1
+fi
+VMEOF"
+    
+    vm_exec "chmod +x '$vm_script'"
+    
+    # Run the test script in VM
+    print_message "BLUE" "🚀 Executing tests in VM..."
+    local vm_exit_code=0
+    if ! vm_exec "'$vm_script'"; then
+        vm_exit_code=$?
+        print_message "YELLOW" "⚠️ VM tests completed with errors (exit code: $vm_exit_code)"
+    else
+        print_message "GREEN" "✅ VM tests completed successfully"
+    fi
+    
+    # Copy results back from VM
+    print_message "BLUE" "📋 Retrieving test results from VM..."
+    
+    # Copy logs and results
+    copy_from_vm "$VM_TEST_DIR/test_vm_${timestamp}.log" "$LOGS_DIR/" 2>/dev/null || true
+    copy_from_vm "$VM_TEST_DIR/test_summary_${timestamp}.txt" "$REPORTS_DIR/" 2>/dev/null || true
+    
+    # Copy any screenshots if they exist
+    vm_exec "find '$VM_TEST_DIR' -name '*.png' -o -name '*.jpg'" | while read -r screenshot; do
+        if [[ -n "$screenshot" ]]; then
+            local basename=$(basename "$screenshot")
+            copy_from_vm "$screenshot" "$SCREENSHOTS_DIR/$basename" 2>/dev/null || true
+        fi
+    done
+    
+    # Cleanup test environment in VM
+    print_message "BLUE" "🧹 Cleaning up VM test environment..."
+    cleanup_vm_test_environment
+    
+    print_message "BLUE" "📊 Test session logged to: $session_log"
+    
+    return $vm_exit_code
+}
+
+#######################################
+# Run tests in host mode (for development/debugging)
+#######################################
+run_host_tests() {
+    print_header "Running Tests on Host"
+    
+    print_message "YELLOW" "⚠️ Warning: Host mode may conflict with your active Warp instance"
+    
+    local session_log=$(create_session_log)
+    
+    print_message "BLUE" "📝 Session log: $session_log"
+    print_message "BLUE" "🧪 Running BATS tests on host..."
+    
+    # Run BATS tests directly
+    if run_bats_tests "$BATS_FILE" "$TEST_FORMAT"; then
+        print_message "GREEN" "✅ Host tests completed successfully"
+        return 0
+    else
+        local exit_code=$?
+        print_message "RED" "❌ Host tests failed"
+        return $exit_code
+    fi
+}
+
+#######################################
+# Main execution flow
+#######################################
+main() {
+    # Parse command line arguments
+    parse_args "$@"
+    
+    print_header "Warp API Test Runner"
+    print_message "BLUE" "📋 Command: $TEST_COMMAND"
+    print_message "BLUE" "📋 Mode: $TEST_MODE"
+    print_message "BLUE" "📋 Format: $TEST_FORMAT"
+    print_message "BLUE" "📋 Working Directory: $SCRIPT_DIR"
+    
+    case "$TEST_COMMAND" in
+        setup)
+            setup_environment
+            if [[ "$TEST_MODE" == "vm" ]]; then
+                setup_vm_environment
+            fi
+            ;;
+        cleanup)
+            print_header "Cleaning up Test Environment"
+            interactive_cleanup
+            ;;
+        cleanup-data)
+            local level="${CLEANUP_DATA_LEVEL:-basic}"
+            print_header "Cleaning Test Data ($level)"
+            cleanup_test_data "$level"
+            ;;
+        cleanup-vm)
+            print_header "Cleaning VM Test Data"
+            cleanup_vm_data
+            ;;
+        cleanup-snapshots)
+            print_header "Removing VM Snapshots"
+            cleanup_vm_snapshots
+            ;;
+        cleanup-all)
+            print_header "Full Environment Reset"
+            print_message "RED" "🚨 This will destroy EVERYTHING! Are you sure? (y/N)"
+            read -p "Confirm full reset: " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                reset_full_environment
+            else
+                print_message "BLUE" "Operation cancelled"
+            fi
+            ;;
+        vm-start)
+            ensure_vm_running
+            ;;
+        vm-stop)
+            stop_vm
+            ;;
+        vm-status)
+            local status=$(get_vm_status)
+            print_message "BLUE" "🖥️ VM Status: $status"
+            ;;
+        vm-init)
+            print_header "Initializing VM for First Time"
+            
+            # Ensure VM is running and fully provisioned
+            print_message "BLUE" "🚀 Starting initial VM setup..."
+            if ! vagrant up; then
+                print_message "RED" "❌ Failed to initialize VM"
+                exit 1
+            fi
+            
+            # Wait for GUI
+            if ! wait_for_vm_gui; then
+                print_message "RED" "❌ VM GUI not ready"
+                exit 1
+            fi
+            
+            # Create clean snapshot
+            print_message "BLUE" "📸 Creating 'clean' snapshot for reuse..."
+            if create_vm_snapshot "clean" "Base clean state after initial setup"; then
+                print_message "GREEN" "🎉 VM initialized successfully with 'clean' snapshot!"
+                print_message "BLUE" "💡 You can now run tests with: ./test.sh test"
+            else
+                print_message "YELLOW" "⚠️ VM setup complete but snapshot creation failed"
+            fi
+            ;;
+        vm-reset)
+            print_header "Resetting VM to Clean State"
+            if reset_vm_to_clean; then
+                print_message "GREEN" "✅ VM reset completed successfully"
+            else
+                print_message "RED" "❌ VM reset failed"
+                exit 1
+            fi
+            ;;
+        vm-rebuild)
+            print_header "Rebuilding VM from Scratch"
+            print_message "YELLOW" "⚠️ This will destroy the current VM. Are you sure? (y/N)"
+            read -p "Confirm VM rebuild: " confirm
+            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                if rebuild_vm; then
+                    print_message "GREEN" "✅ VM rebuild completed successfully"
+                else
+                    print_message "RED" "❌ VM rebuild failed"
+                    exit 1
+                fi
+            else
+                print_message "BLUE" "Operation cancelled"
+            fi
+            ;;
+        vm-snapshot)
+            local snapshot_name="${SNAPSHOT_NAME:-clean}"
+            print_header "Creating VM Snapshot"
+            create_vm_snapshot "$snapshot_name" "Manual snapshot created at $(date)"
+            ;;
+        vm-restore)
+            local snapshot_name="${SNAPSHOT_NAME:-clean}"
+            print_header "Restoring VM Snapshot"
+            restore_vm_snapshot "$snapshot_name"
+            ;;
+        vm-list)
+            print_header "VM Snapshots"
+            list_vm_snapshots
+            ;;
+        sync)
+            sync_api_file
+            ;;
+        test)
+            # Set up environment
+            setup_environment
+            
+            local test_exit_code=0
+            
+            if [[ "$TEST_MODE" == "vm" ]]; then
+                setup_vm_environment
+                if ! run_vm_tests; then
+                    test_exit_code=$?
+                fi
+            else
+                if ! run_host_tests; then
+                    test_exit_code=$?
+                fi
+            fi
+            
+            # Archive results
+            archive_results
+            
+            if [[ $test_exit_code -eq 0 ]]; then
+                print_header "✅ All Tests Passed"
+            else
+                print_header "❌ Some Tests Failed"
+            fi
+            
+            exit $test_exit_code
+            ;;
+        *)
+            print_message "RED" "❌ Unknown command: $TEST_COMMAND"
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+# Trap to ensure cleanup on exit
+trap 'cleanup_artifacts basic >/dev/null 2>&1' EXIT
+
+# Run main function with all arguments
+main "$@"
