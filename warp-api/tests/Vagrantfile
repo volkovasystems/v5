@@ -178,25 +178,41 @@ EOF
     
     WARP_SUCCESS=false
     
-    # Fix the 404 error by using the correct Warp download URL
+    # Correct Warp Terminal download URLs from official website
     WARP_URLS=(
-        "https://releases.warp.dev/stable/latest/warp-terminal_amd64.deb"
-        "https://app.warp.dev/download?package=deb"
-        "https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb"
+        "https://app.warp.dev/get_warp?package=deb"
+        "https://app.warp.dev/get_warp?package=deb_x64"
+        "https://app.warp.dev/get_warp"
     )
     
     for url in "${WARP_URLS[@]}"; do
         echo "Trying URL: $url"
-        if curl -fsSL --connect-timeout 30 --max-time 300 "$url" -o warp-terminal.deb >/dev/null 2>&1; then
-            # Verify the file is actually a .deb package
-            if file warp-terminal.deb | grep -q "Debian binary package"; then
-                WARP_SUCCESS=true
-                echo "✅ Warp Terminal downloaded successfully"
-                break
+        
+        # Use proper user agent and headers for Warp downloads
+        if curl -fsSL \
+            --user-agent "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0" \
+            --header "Accept: application/octet-stream,*/*" \
+            --connect-timeout 30 --max-time 300 \
+            -L "$url" -o warp-terminal.deb >/dev/null 2>&1; then
+            
+            # Check if we actually got a .deb file
+            if [ -f warp-terminal.deb ] && [ -s warp-terminal.deb ]; then
+                # Verify the file is actually a .deb package
+                if file warp-terminal.deb | grep -q "Debian binary package"; then
+                    WARP_SUCCESS=true
+                    echo "✅ Warp Terminal downloaded successfully ($(du -h warp-terminal.deb | cut -f1))"
+                    break
+                else
+                    echo "⚠️ Downloaded file is not a valid .deb package, trying next URL..."
+                    echo "   File type: $(file warp-terminal.deb)"
+                    rm -f warp-terminal.deb
+                fi
             else
-                echo "⚠️ Downloaded file is not a valid .deb package, trying next URL..."
+                echo "⚠️ Download failed or empty file, trying next URL..."
                 rm -f warp-terminal.deb
             fi
+        else
+            echo "⚠️ Download failed for $url"
         fi
     done
     
@@ -319,14 +335,21 @@ if [ "$XDG_SESSION_TYPE" = "x11" ] || [ "$XDG_SESSION_TYPE" = "wayland" ]; then
             echo "\033[1;33m💡 To run tests, use the test runner from the host:\033[0m"
             echo "\033[1;36m   ./test.sh test\033[0m"
             echo ""
-            echo "\033[1;32m🛠️ Available tools in this VM:\033[0m"
+            echo "\033[1;32m🚼️ Available tools in this VM:\033[0m"
             echo "  - GUI automation: xdotool, wmctrl, imagemagick"
             echo "  - System monitoring: htop, df -h, free -h"
             echo "  - Python with pyautogui, pillow, opencv"
+            
+            # Check for Warp Terminal installation more thoroughly
             if command -v warp >/dev/null 2>&1; then
-                echo "  - Warp Terminal: installed and ready"
+                echo "  - Warp Terminal: \033[1;32minstalled and ready\033[0m"
+            elif [ -f "/usr/bin/warp-terminal" ]; then
+                echo "  - Warp Terminal: \033[1;32minstalled (warp-terminal)\033[0m"
+            elif dpkg -l | grep -q warp; then
+                echo "  - Warp Terminal: \033[1;33minstalled (package found)\033[0m"
             else
-                echo "  - Warp Terminal: not installed (download may have failed)"
+                echo "  - Warp Terminal: \033[1;31mnot installed\033[0m (download failed)"
+                echo "    \033[1;36mℹ️ Note: Tests can still run with standard terminal\033[0m"
             fi
             echo ""
             echo "\033[1;34m🖱️ This VM is ready! Use host test runner to execute tests.\033[0m"

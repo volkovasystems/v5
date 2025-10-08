@@ -343,12 +343,20 @@ archive_results() {
 
 #######################################
 # Wait for VM to be ready for GUI operations
+# Arguments:
+#   $1: timeout in attempts (optional, default: 30 for tests, 5 for setup)
 #######################################
 wait_for_vm_gui() {
-    local max_attempts=30
+    local max_attempts="${1:-30}"
     local attempt=0
     
-    print_message "BLUE" "⏳ Waiting for VM GUI to be ready..."
+    # Adjust timeout based on TEST_COMMAND if available
+    if [[ "$TEST_COMMAND" == "setup" ]]; then
+        max_attempts="${1:-5}"  # Default to 5 attempts (10 seconds) for setup
+        print_message "BLUE" "⏳ Waiting for VM GUI to be ready (quick setup mode)..."
+    else
+        print_message "BLUE" "⏳ Waiting for VM GUI to be ready..."
+    fi
     
     while [[ $attempt -lt $max_attempts ]]; do
         if vm_exec "pgrep -x 'gnome-shell\|gdm\|Xorg' >/dev/null"; then
@@ -357,12 +365,22 @@ wait_for_vm_gui() {
         fi
         
         ((attempt++))
-        print_message "YELLOW" "⏳ Waiting for GUI... ($attempt/$max_attempts)"
+        if [[ "$TEST_COMMAND" == "setup" ]]; then
+            print_message "YELLOW" "⏳ Waiting for GUI... ($attempt/$max_attempts) - setup mode"
+        else
+            print_message "YELLOW" "⏳ Waiting for GUI... ($attempt/$max_attempts)"
+        fi
         sleep 2
     done
     
-    print_message "RED" "❌ VM GUI failed to start within timeout"
-    return 1
+    if [[ "$TEST_COMMAND" == "setup" ]]; then
+        print_message "YELLOW" "⚠️ VM GUI not ready yet (setup mode timeout) - continuing anyway"
+        print_message "BLUE" "💡 VM is being set up, GUI may take longer to fully initialize"
+        return 0  # Don't fail on setup, just continue
+    else
+        print_message "RED" "❌ VM GUI failed to start within timeout"
+        return 1
+    fi
 }
 
 #######################################
