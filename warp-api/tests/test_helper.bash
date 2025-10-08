@@ -552,17 +552,34 @@ clean_test_data() {
     print_message "BLUE" "🧹 Cleaning test data ($level)..."
     
     if [[ "$level" == "full" ]]; then
-        # Full data cleanup - remove all artifacts
-        rm -rf "$LOGS_DIR"/* "$REPORTS_DIR"/* "$RESULTS_DIR"/* "$SCREENSHOTS_DIR"/* 2>/dev/null || true
+        # Full data cleanup - use individual directory cleaning functions
+        print_message "BLUE" "💫 Executing comprehensive directory cleaning..."
+        
+        # Clean each directory using dedicated functions
+        clean_logs_data
+        clean_reports_data
+        clean_results_data
+        clean_screenshots_data
+        
+        # Clean additional artifacts
+        print_message "BLUE" "🧹 Cleaning additional test artifacts..."
         rm -f test_results_*.tar.gz 2>/dev/null || true
         rm -f warp_api.py 2>/dev/null || true
+        
         print_message "GREEN" "✅ Full test data cleaning completed"
     else
-        # Basic cleaning - keep recent files
+        # Basic cleaning - keep recent files using time-based approach
+        print_message "BLUE" "💫 Cleaning old test files (older than 1 day)..."
+        
         find "$LOGS_DIR" -name "*.log" -mtime +1 -delete 2>/dev/null || true
         find "$RESULTS_DIR" -name "*.tap" -mtime +1 -delete 2>/dev/null || true
         find "$SCREENSHOTS_DIR" -name "*.png" -mtime +1 -delete 2>/dev/null || true
+        find "$REPORTS_DIR" -name "*.txt" -mtime +1 -delete 2>/dev/null || true
+        find "$REPORTS_DIR" -name "*.html" -mtime +1 -delete 2>/dev/null || true
+        
+        # Clean additional artifacts
         rm -f test_results_*.tar.gz 2>/dev/null || true
+        
         print_message "GREEN" "✅ Basic test data cleaning completed"
     fi
 }

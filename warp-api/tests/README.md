@@ -402,19 +402,24 @@ Provides an interactive menu with all clean options and safety confirmations.
 ./test.sh clean-data          # Same as basic
 ```
 - Removes old log files (older than 1 day)
-- Removes old test results (older than 1 day)
-- Removes old screenshots (older than 1 day)
+- Removes old result files (older than 1 day)
+- Removes old screenshot files (older than 1 day)
+- Removes old report files (older than 1 day)
 - Removes test result archives
-- **Safe**: Keeps recent test data
+- **Safe**: Keeps recent test data, preserves directory structure
 
-#### Full Test Data Cleaning (Destructive)
+#### Full Test Data Cleaning (Comprehensive)
 ```bash
 ./test.sh clean-data full
 ```
-- Removes ALL logs, reports, results, and screenshots
-- Removes test result archives
-- Removes synced API files
-- **Destructive**: All test data is lost
+- **Executes all individual directory cleaning commands:**
+  - `clean-logs` - Removes ALL log files (preserves .gitkeep)
+  - `clean-reports` - Removes ALL report files (preserves .gitkeep)
+  - `clean-results` - Removes ALL result files (preserves .gitkeep)
+  - `clean-screenshots` - Removes ALL screenshot files (preserves .gitkeep)
+- Removes test result archives and synced API files
+- **Comprehensive**: All test data removed but directory structure preserved
+- **Consistent**: Uses same cleaning functions as individual commands
 
 ### VM Clean Commands
 
