@@ -676,6 +676,66 @@ clean_reports_data() {
 }
 
 #######################################
+# Clean results directory (preserves .gitkeep)
+#######################################
+clean_results_data() {
+    print_message "BLUE" "🧹 Cleaning results directory..."
+    
+    if [[ -d "$RESULTS_DIR" ]]; then
+        # Find and preserve any .gitkeep files first
+        local gitkeep_files=()
+        while IFS= read -r -d '' file; do
+            gitkeep_files+=("$file")
+        done < <(find "$RESULTS_DIR" -name ".gitkeep" -print0 2>/dev/null)
+        
+        # Remove all contents of results directory
+        rm -rf "$RESULTS_DIR"/* "$RESULTS_DIR"/.* 2>/dev/null || true
+        
+        # Restore .gitkeep files if any existed
+        for gitkeep_file in "${gitkeep_files[@]}"; do
+            if [[ -n "$gitkeep_file" ]]; then
+                mkdir -p "$(dirname "$gitkeep_file")"
+                touch "$gitkeep_file"
+            fi
+        done
+        
+        print_message "GREEN" "✅ Results directory cleaned (preserved .gitkeep files)"
+    else
+        print_message "YELLOW" "📭 No results directory found"
+    fi
+}
+
+#######################################
+# Clean screenshots directory (preserves .gitkeep)
+#######################################
+clean_screenshots_data() {
+    print_message "BLUE" "🧹 Cleaning screenshots directory..."
+    
+    if [[ -d "$SCREENSHOTS_DIR" ]]; then
+        # Find and preserve any .gitkeep files first
+        local gitkeep_files=()
+        while IFS= read -r -d '' file; do
+            gitkeep_files+=("$file")
+        done < <(find "$SCREENSHOTS_DIR" -name ".gitkeep" -print0 2>/dev/null)
+        
+        # Remove all contents of screenshots directory
+        rm -rf "$SCREENSHOTS_DIR"/* "$SCREENSHOTS_DIR"/.* 2>/dev/null || true
+        
+        # Restore .gitkeep files if any existed
+        for gitkeep_file in "${gitkeep_files[@]}"; do
+            if [[ -n "$gitkeep_file" ]]; then
+                mkdir -p "$(dirname "$gitkeep_file")"
+                touch "$gitkeep_file"
+            fi
+        done
+        
+        print_message "GREEN" "✅ Screenshots directory cleaned (preserved .gitkeep files)"
+    else
+        print_message "YELLOW" "📭 No screenshots directory found"
+    fi
+}
+
+#######################################
 # Reset VM to clean snapshot (VM reset)
 #######################################
 reset_vm_to_clean() {
@@ -921,6 +981,8 @@ interactive_clean() {
         print_message "BLUE" "   ./test.sh clean-vm"
         print_message "BLUE" "   ./test.sh clean-logs"
         print_message "BLUE" "   ./test.sh clean-reports"
+        print_message "BLUE" "   ./test.sh clean-results"
+        print_message "BLUE" "   ./test.sh clean-screenshots"
         print_message "BLUE" "   ./test.sh vm-reset"
         print_message "BLUE" "   ./test.sh vm-rebuild --force"
         print_message "BLUE" "   ./test.sh clean-all --force"
@@ -935,14 +997,16 @@ interactive_clean() {
     echo "3) VM data + .vagrant directory cleaning (destructive)"
     echo "4) Clean all log files (preserves .gitkeep)"
     echo "5) Clean all report files (preserves .gitkeep)"
-    echo "6) Reset VM to clean state"
-    echo "7) Remove all VM snapshots"
-    echo "8) Rebuild VM from scratch"
-    echo "9) Full environment reset (nuclear)"
-    echo "10) Cancel"
+    echo "6) Clean all result files (preserves .gitkeep)"
+    echo "7) Clean all screenshot files (preserves .gitkeep)"
+    echo "8) Reset VM to clean state"
+    echo "9) Remove all VM snapshots"
+    echo "10) Rebuild VM from scratch"
+    echo "11) Full environment reset (nuclear)"
+    echo "12) Cancel"
     echo ""
     
-    read -p "Enter your choice [1-10]: " choice
+    read -p "Enter your choice [1-12]: " choice
     
     case $choice in
         1)
@@ -961,9 +1025,15 @@ interactive_clean() {
             clean_reports_data
             ;;
         6)
-            reset_vm_to_clean
+            clean_results_data
             ;;
         7)
+            clean_screenshots_data
+            ;;
+        8)
+            reset_vm_to_clean
+            ;;
+        9)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Removing all VM snapshots"
                 clean_vm_snapshots
@@ -977,7 +1047,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        8)
+        10)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Rebuilding VM"
                 rebuild_vm
@@ -991,7 +1061,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        9)
+        11)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Performing full environment reset"
                 reset_full_environment
@@ -1005,7 +1075,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        10)
+        12)
             print_message "BLUE" "Operation cancelled"
             ;;
         *)

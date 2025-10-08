@@ -83,8 +83,10 @@ cd <repository>/warp-api/tests
 ./test.sh clean-data basic   # Clean old test data (safe)
 ./test.sh clean-data full    # Clean all test data
 ./test.sh clean-vm           # Clean VM test data
-./test.sh clean-logs         # Clean all log files
-./test.sh clean-reports      # Clean all report files
+./test.sh clean-logs         # Clean all log files (preserves .gitkeep)
+./test.sh clean-reports      # Clean all report files (preserves .gitkeep)
+./test.sh clean-results      # Clean all result files (preserves .gitkeep)
+./test.sh clean-screenshots  # Clean all screenshot files (preserves .gitkeep)
 ./test.sh clean-snapshots    # Remove all VM snapshots
 ./test.sh clean-all          # Nuclear reset (destroys everything)
 ```
@@ -445,6 +447,26 @@ Provides an interactive menu with all clean options and safety confirmations.
 - Cleans report files, subdirectories, and all nested content
 - **Safe**: Preserves directory structure via .gitkeep files
 - **Fast**: Quick operation for report maintenance
+- **Thorough**: Removes hidden files and subdirectories
+
+#### Clean All Result Files
+```bash
+./test.sh clean-results
+```
+- Removes ALL contents of results directory (preserves .gitkeep files)
+- Cleans result files, archives, TAP files, and all nested content
+- **Safe**: Preserves directory structure via .gitkeep files
+- **Fast**: Quick operation for result maintenance
+- **Thorough**: Removes hidden files and subdirectories
+
+#### Clean All Screenshot Files
+```bash
+./test.sh clean-screenshots
+```
+- Removes ALL contents of screenshots directory (preserves .gitkeep files)
+- Cleans screenshot files, images, and all nested content
+- **Safe**: Preserves directory structure via .gitkeep files
+- **Fast**: Quick operation for screenshot maintenance
 - **Thorough**: Removes hidden files and subdirectories
 
 #### Remove All VM Snapshots
