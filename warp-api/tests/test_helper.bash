@@ -72,12 +72,12 @@ ensure_directories() {
 #######################################
 # Clean up previous test artifacts
 # Arguments:
-#   $1: cleanup level (basic|full)
+#   $1: clean level (basic|full)
 #######################################
-cleanup_artifacts() {
+clean_artifacts() {
     local level="${1:-basic}"
     
-    print_message "BLUE" "🧹 Cleaning up test artifacts ($level)..."
+    print_message "BLUE" "🧹 Cleaning test artifacts ($level)..."
     
     # Basic cleanup - remove log and result files
     find "$LOGS_DIR" -name "*.log" -mtime +1 -delete 2>/dev/null || true
@@ -86,9 +86,9 @@ cleanup_artifacts() {
     if [[ "$level" == "full" ]]; then
         # Full cleanup - remove all artifacts
         rm -rf "$LOGS_DIR"/* "$REPORTS_DIR"/* "$RESULTS_DIR"/* "$SCREENSHOTS_DIR"/* 2>/dev/null || true
-        print_message "GREEN" "✅ Full cleanup completed"
+        print_message "GREEN" "✅ Full cleaning completed"
     else
-        print_message "GREEN" "✅ Basic cleanup completed"
+        print_message "GREEN" "✅ Basic cleaning completed"
     fi
 }
 
@@ -508,20 +508,20 @@ setup_vm_test_environment() {
 }
 
 #######################################
-# Cleanup test environment in VM
+# Clean test environment in VM
 #######################################
-cleanup_vm_test_environment() {
-    print_message "BLUE" "🧹 Cleaning up test environment in VM..."
+clean_vm_test_environment() {
+    print_message "BLUE" "🧹 Cleaning test environment in VM..."
     
     local vm_status=$(get_vm_status)
     if [[ "$vm_status" != "running" ]]; then
-        print_message "YELLOW" "⚠️ VM not running, skipping cleanup"
+        print_message "YELLOW" "⚠️ VM not running, skipping cleaning"
         return 0
     fi
     
     # Run test cleanup provisioner
     if vagrant provision --provision-with test_cleanup >/dev/null 2>&1; then
-        print_message "GREEN" "✅ Test environment cleaned up successfully"
+        print_message "GREEN" "✅ Test environment cleaned successfully"
         
         # Copy any archived results
         local archives=(test_results_*.tar.gz)
@@ -532,21 +532,21 @@ cleanup_vm_test_environment() {
         
         return 0
     else
-        print_message "RED" "❌ Failed to clean up test environment"
+        print_message "RED" "❌ Failed to clean test environment"
         return 1
     fi
 }
 
 #######################################
-# Environment Reset and Cleanup Functions
+# Environment Reset and Clean Functions
 #######################################
 
 #######################################
-# Clean test data only (lightest cleanup)
+# Clean test data only (lightest cleaning)
 # Arguments:
-#   $1: cleanup level (basic|full) - optional, defaults to basic
+#   $1: clean level (basic|full) - optional, defaults to basic
 #######################################
-cleanup_test_data() {
+clean_test_data() {
     local level="${1:-basic}"
     
     print_message "BLUE" "🧹 Cleaning test data ($level)..."
@@ -556,21 +556,21 @@ cleanup_test_data() {
         rm -rf "$LOGS_DIR"/* "$REPORTS_DIR"/* "$RESULTS_DIR"/* "$SCREENSHOTS_DIR"/* 2>/dev/null || true
         rm -f test_results_*.tar.gz 2>/dev/null || true
         rm -f warp_api.py 2>/dev/null || true
-        print_message "GREEN" "✅ Full test data cleanup completed"
+        print_message "GREEN" "✅ Full test data cleaning completed"
     else
-        # Basic cleanup - keep recent files
+        # Basic cleaning - keep recent files
         find "$LOGS_DIR" -name "*.log" -mtime +1 -delete 2>/dev/null || true
         find "$RESULTS_DIR" -name "*.tap" -mtime +1 -delete 2>/dev/null || true
         find "$SCREENSHOTS_DIR" -name "*.png" -mtime +1 -delete 2>/dev/null || true
         rm -f test_results_*.tar.gz 2>/dev/null || true
-        print_message "GREEN" "✅ Basic test data cleanup completed"
+        print_message "GREEN" "✅ Basic test data cleaning completed"
     fi
 }
 
 #######################################
-# Clean VM test environment (medium cleanup)
+# Clean VM test environment (medium cleaning)
 #######################################
-cleanup_vm_data() {
+clean_vm_data() {
     print_message "BLUE" "🧹 Cleaning VM test data..."
     
     local vm_status=$(get_vm_status)
@@ -579,7 +579,7 @@ cleanup_vm_data() {
         vm_exec "cd /home/vagrant/warp-testing && rm -rf logs/* reports/* results/* screenshots/* *.log *.txt 2>/dev/null || true"
         print_message "GREEN" "✅ VM test data cleaned"
     else
-        print_message "YELLOW" "⚠️ VM not running, skipping VM data cleanup"
+        print_message "YELLOW" "⚠️ VM not running, skipping VM data cleaning"
     fi
 }
 
@@ -626,7 +626,7 @@ reset_vm_to_clean() {
 #######################################
 # Remove all VM snapshots (destructive)
 #######################################
-cleanup_vm_snapshots() {
+clean_vm_snapshots() {
     print_message "BLUE" "🗑️ Removing all VM snapshots..."
     
     # Get list of snapshots
@@ -699,7 +699,7 @@ reset_full_environment() {
     print_message "BLUE" "☢️ Performing full environment reset..."
     
     # Clean all test data
-    cleanup_test_data "full"
+    clean_test_data "full"
     
     # Remove VM and all snapshots
     print_message "BLUE" "💥 Removing VM and all data..."
@@ -710,7 +710,7 @@ reset_full_environment() {
     rm -rf .vagrant >/dev/null 2>&1 || true
     
     # Clean host test directories
-    cleanup_test_data "full"
+    clean_test_data "full"
     
     # Remove downloaded box (forces redownload)
     print_message "YELLOW" "📦 Removing downloaded VM box (will redownload)..."
@@ -818,27 +818,27 @@ restore_pristine_snapshot() {
 }
 
 #######################################
-# Interactive cleanup menu
+# Interactive clean menu
 #######################################
-interactive_cleanup() {
+interactive_clean() {
     # Skip interactive menu in force mode
     if [[ "${TEST_FORCE:-false}" == "true" ]]; then
         print_message "YELLOW" "🚨 Force mode: Skipping interactive menu"
-        print_message "BLUE" "💡 Use specific cleanup commands for automation:"
-        print_message "BLUE" "   ./test.sh cleanup-data [basic|full]"
-        print_message "BLUE" "   ./test.sh cleanup-vm"
+        print_message "BLUE" "💡 Use specific clean commands for automation:"
+        print_message "BLUE" "   ./test.sh clean-data [basic|full]"
+        print_message "BLUE" "   ./test.sh clean-vm"
         print_message "BLUE" "   ./test.sh vm-reset"
         print_message "BLUE" "   ./test.sh vm-rebuild --force"
-        print_message "BLUE" "   ./test.sh cleanup-all --force"
+        print_message "BLUE" "   ./test.sh clean-all --force"
         return 0
     fi
     
-    print_header "Interactive Cleanup Menu"
+    print_header "Interactive Clean Menu"
     
-    echo "Please select cleanup level:"
-    echo "1) Basic test data cleanup (safe)"
-    echo "2) Full test data cleanup"
-    echo "3) VM test data cleanup"
+    echo "Please select clean level:"
+    echo "1) Basic test data cleaning (safe)"
+    echo "2) Full test data cleaning"
+    echo "3) VM test data cleaning"
     echo "4) Reset VM to clean state"
     echo "5) Remove all VM snapshots"
     echo "6) Rebuild VM from scratch"
@@ -850,13 +850,13 @@ interactive_cleanup() {
     
     case $choice in
         1)
-            cleanup_test_data "basic"
+            clean_test_data "basic"
             ;;
         2)
-            cleanup_test_data "full"
+            clean_test_data "full"
             ;;
         3)
-            cleanup_vm_data
+            clean_vm_data
             ;;
         4)
             reset_vm_to_clean
@@ -864,12 +864,12 @@ interactive_cleanup() {
         5)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Removing all VM snapshots"
-                cleanup_vm_snapshots
+                clean_vm_snapshots
             else
                 print_message "YELLOW" "⚠️ This will remove ALL VM snapshots. Are you sure? (y/N)"
                 read -p "Confirm: " confirm
                 if [[ "$confirm" =~ ^[Yy]$ ]]; then
-                    cleanup_vm_snapshots
+                    clean_vm_snapshots
                 else
                     print_message "BLUE" "Operation cancelled"
                 fi

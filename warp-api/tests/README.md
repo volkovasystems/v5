@@ -77,14 +77,14 @@ cd <repository>/warp-api/tests
 ./test.sh vm-rebuild         # Rebuild VM from scratch
 ```
 
-### Cleanup and Reset Commands
+### Clean and Reset Commands
 ```bash
-./test.sh cleanup            # Interactive cleanup menu
-./test.sh cleanup-data basic # Clean old test data (safe)
-./test.sh cleanup-data full  # Clean all test data
-./test.sh cleanup-vm         # Clean VM test data
-./test.sh cleanup-snapshots  # Remove all VM snapshots
-./test.sh cleanup-all        # Nuclear reset (destroys everything)
+./test.sh clean              # Interactive clean menu
+./test.sh clean-data basic   # Clean old test data (safe)
+./test.sh clean-data full    # Clean all test data
+./test.sh clean-vm           # Clean VM test data
+./test.sh clean-snapshots    # Remove all VM snapshots
+./test.sh clean-all          # Nuclear reset (destroys everything)
 ```
 
 ### Ultra-Fast VM Setup
@@ -170,12 +170,12 @@ Every VM test run automatically performs a quick capability check:
 - **Performance benchmarking** and scalability testing
 - **Visual verification** through screenshot comparison
 
-### 🔄 Reset and Cleanup System
-- **Multiple cleanup levels** from basic to nuclear reset
-- **Interactive cleanup menu** with safety confirmations
+### 🔄 Reset and Clean System
+- **Multiple clean levels** from basic to nuclear reset
+- **Interactive clean menu** with safety confirmations
 - **VM reset capabilities** using snapshots (30-second reset)
 - **Full environment rebuild** for corrupted states
-- **Safe cleanup policies** that preserve recent data
+- **Safe clean policies** that preserve recent data
 - **Comprehensive reset guide** - see detailed section below
 
 ### ⚡ Ultra-Fast Setup
@@ -242,7 +242,7 @@ The VirtualBox VM provides:
 ./test.sh vm-stop
 
 # Clean up test artifacts
-./test.sh cleanup -c full
+./test.sh clean -c full
 ```
 
 ### Development Workflow
@@ -279,22 +279,22 @@ sudo modprobe -r kvm_amd kvm
 ./test.sh vm-rebuild
 
 # Clean test data only
-./test.sh cleanup-data full
+./test.sh clean-data full
 
 # Nuclear option (destroys everything)
-./test.sh cleanup-all
+./test.sh clean-all
 ```
 
-### Reset and Cleanup Options
+### Reset and Clean Options
 ```bash
-# Interactive cleanup menu with guidance
-./test.sh cleanup
+# Interactive clean menu with guidance
+./test.sh clean
 
 # Quick fixes for common issues
-./test.sh vm-reset           # VM behaving strangely
-./test.sh cleanup-data basic # Free up disk space
-./test.sh vm-rebuild         # VM corrupted
-./test.sh cleanup-all        # Start completely fresh
+./test.sh vm-reset         # VM behaving strangely
+./test.sh clean-data basic # Free up disk space
+./test.sh vm-rebuild       # VM corrupted
+./test.sh clean-all        # Start completely fresh
 ```
 
 > 📚 **Detailed Reset Guide**: See comprehensive documentation sections below
@@ -373,29 +373,29 @@ The design ensures reliable, repeatable, and maintainable testing for pixel-perf
 
 # 📚 Comprehensive Documentation
 
-## 🔄 Reset and Cleanup System
+## 🔄 Reset and Clean System
 
 ### Overview
-The test suite provides multiple levels of cleanup and reset operations:
+The test suite provides multiple levels of clean and reset operations:
 
-- **Data cleanup**: Remove test artifacts and logs
-- **VM cleanup**: Clean test data inside the VM  
+- **Data cleaning**: Remove test artifacts and logs
+- **VM cleaning**: Clean test data inside the VM
 - **VM reset**: Reset VM to clean snapshot state (30 seconds)
 - **VM rebuild**: Completely rebuild VM from scratch (3-8 minutes)
 - **Full reset**: Nuclear option that destroys everything
 
-### Interactive Cleanup Menu
+### Interactive Clean Menu
 ```bash
-./test.sh cleanup
+./test.sh clean
 ```
-Provides an interactive menu with all cleanup options and safety confirmations.
+Provides an interactive menu with all clean options and safety confirmations.
 
-### Data Cleanup Commands
+### Data Clean Commands
 
-#### Basic Test Data Cleanup (Safe)
+#### Basic Test Data Cleaning (Safe)
 ```bash
-./test.sh cleanup-data basic    # Default
-./test.sh cleanup-data          # Same as basic
+./test.sh clean-data basic    # Default
+./test.sh clean-data          # Same as basic
 ```
 - Removes old log files (older than 1 day)
 - Removes old test results (older than 1 day)
@@ -403,20 +403,20 @@ Provides an interactive menu with all cleanup options and safety confirmations.
 - Removes test result archives
 - **Safe**: Keeps recent test data
 
-#### Full Test Data Cleanup (Destructive)
+#### Full Test Data Cleaning (Destructive)
 ```bash
-./test.sh cleanup-data full
+./test.sh clean-data full
 ```
 - Removes ALL logs, reports, results, and screenshots
 - Removes test result archives
 - Removes synced API files
 - **Destructive**: All test data is lost
 
-### VM Cleanup Commands
+### VM Clean Commands
 
 #### Clean VM Test Data
 ```bash
-./test.sh cleanup-vm
+./test.sh clean-vm
 ```
 - Cleans test data inside the running VM
 - Removes logs, reports, results, and screenshots from VM
@@ -424,7 +424,7 @@ Provides an interactive menu with all cleanup options and safety confirmations.
 
 #### Remove All VM Snapshots
 ```bash
-./test.sh cleanup-snapshots
+./test.sh clean-snapshots
 ```
 - Removes ALL VM snapshots
 - **Warning**: You will lose all saved VM states
@@ -454,7 +454,7 @@ Provides an interactive menu with all cleanup options and safety confirmations.
 
 #### Full Environment Reset
 ```bash
-./test.sh cleanup-all
+./test.sh clean-all
 ```
 - Destroys VM and all snapshots
 - Removes all test data and artifacts
@@ -466,16 +466,16 @@ Provides an interactive menu with all cleanup options and safety confirmations.
 ### Automation Support
 All destructive operations support force mode for automation:
 ```bash
-./test.sh cleanup-all --force     # No confirmation prompts
+./test.sh clean-all --force       # No confirmation prompts
 ./test.sh vm-rebuild --yes        # Skip confirmations
-./test.sh cleanup-snapshots --force
+./test.sh clean-snapshots --force
 ```
 
 ### Usage Scenarios
 
 #### After Failed Tests
 ```bash
-./test.sh cleanup-data basic      # Quick cleanup
+./test.sh clean-data basic        # Quick cleaning
 ./test.sh vm-reset               # Or reset VM to clean state
 ```
 
@@ -491,27 +491,27 @@ All destructive operations support force mode for automation:
 
 #### When Everything is Broken
 ```bash
-./test.sh cleanup-all --force    # Nuclear option
+./test.sh clean-all --force      # Nuclear option
 ./test.sh vm-init                # Reinitialize
 ```
 
 #### Regular Maintenance
 ```bash
-./test.sh cleanup                # Interactive guided cleanup
-./test.sh cleanup-data basic     # Weekly maintenance
+./test.sh clean                  # Interactive guided cleaning
+./test.sh clean-data basic       # Weekly maintenance
 ```
 
 ### Best Practices
 
 1. **Create Clean Snapshots**: Always run `./test.sh vm-init` after major changes
-2. **Use Appropriate Cleanup Level**:
-   - **Basic cleanup**: For routine maintenance
-   - **Full cleanup**: When switching test contexts
+2. **Use Appropriate Clean Level**:
+   - **Basic cleaning**: For routine maintenance
+   - **Full cleaning**: When switching test contexts
    - **VM reset**: When tests behave unexpectedly
    - **VM rebuild**: When VM is corrupted
    - **Full reset**: Last resort for broken environments
-3. **Regular Maintenance**: Run `./test.sh cleanup-data basic` weekly
-4. **Backup Important Results**: Archive results before cleanup
+3. **Regular Maintenance**: Run `./test.sh clean-data basic` weekly
+4. **Backup Important Results**: Archive results before cleaning
 
 ---
 
@@ -712,10 +712,10 @@ vagrant provision --provision-with test_setup
 #### Disk Space Issues
 ```bash
 # Clean test data
-./test.sh cleanup-data full
+./test.sh clean-data full
 
 # Remove old snapshots
-./test.sh cleanup-snapshots --force
+./test.sh clean-snapshots --force
 
 # Compact VM disk
 VBoxManage modifymedium disk [path-to-vmdk] --compact
@@ -833,7 +833,7 @@ pipeline {
     
     post {
         always {
-            sh 'cd tests && ./test.sh cleanup-data full --force'
+            sh 'cd tests && ./test.sh clean-data full --force'
         }
     }
 }
@@ -1202,10 +1202,10 @@ No user intervention required - the system chooses the fastest option automatica
 ./test.sh vm-reset
 
 # Clean test data
-./test.sh cleanup-data basic
+./test.sh clean-data basic
 
-# Or use interactive cleanup
-./test.sh cleanup
+# Or use interactive clean
+./test.sh clean
 ```
 
 #### If VM Won't Restore  
@@ -1215,7 +1215,7 @@ VBoxManage controlvm warp-api-testbed poweroff
 ./test.sh vm-clone
 
 # Or nuclear option
-./test.sh cleanup-all --force
+./test.sh clean-all --force
 ./test.sh vm-init
 ```
 

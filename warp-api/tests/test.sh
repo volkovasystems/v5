@@ -14,7 +14,7 @@ source "$SCRIPT_DIR/test_helper.bash"
 BATS_FILE="warp_api.bats"
 DEFAULT_MODE="vm"
 DEFAULT_FORMAT="tap"
-CLEANUP_LEVEL="basic"
+CLEAN_LEVEL="basic"
 
 # Safety: NEVER allow host mode by default to prevent terminal shutdown
 FORCE_VM_MODE="true"
@@ -32,7 +32,7 @@ COMMANDS:
   test              Run all tests (default)
   setup             Set up test environment only
   setup --reset     Set up test environment from complete scratch (destroys VM)
-  cleanup           Clean up test artifacts (interactive menu)
+  clean             Clean up test artifacts (interactive menu)
   check-system      Check host system capability for VirtualBox testing
   check-system-quick Quick system capability check
   vm-start          Start the VM
@@ -51,16 +51,16 @@ COMMANDS:
   vm-pristine   Create pristine snapshot for repository commit
   vm-clone      Restore pristine snapshot (after repository clone)
   
-  # Cleanup Commands:
-  cleanup-data       Clean test data (basic|full)
-  cleanup-vm         Clean VM test data
-  cleanup-snapshots  Remove all VM snapshots
-  cleanup-all        Full environment reset (nuclear)
+  # Clean Commands:
+  clean-data         Clean test data (basic|full)
+  clean-vm           Clean VM test data
+  clean-snapshots    Remove all VM snapshots
+  clean-all          Full environment reset (nuclear)
 
 OPTIONS:
   -m, --mode MODE       Test mode: vm|host (default: vm)
   -f, --format FORMAT   Output format: tap|pretty (default: tap)
-  -c, --cleanup LEVEL   Cleanup level: basic|full (default: basic)
+  -c, --clean LEVEL     Clean level: basic|full (default: basic)
   -v, --verbose         Enable verbose output
   -y, --yes, --force    Skip interactive prompts (for automation)
   -r, --reset           Reset from scratch (for setup command)
@@ -75,12 +75,12 @@ EXAMPLES:
   $0 vm-restart            # Force restart VM (perfect after interruptions)
   $0 setup                 # Set up test environment only
   $0 setup --reset         # Set up from complete scratch (destroys VM)
-  $0 cleanup               # Interactive cleanup menu
-  $0 cleanup-data basic # Basic test data cleanup
-  $0 cleanup-data full  # Full test data cleanup
+  $0 clean                 # Interactive clean menu
+  $0 clean-data basic   # Basic test data cleanup
+  $0 clean-data full    # Full test data cleanup
   $0 vm-reset           # Reset VM to clean state
   $0 vm-rebuild         # Rebuild VM from scratch
-  $0 cleanup-all        # Nuclear reset (destroys everything)
+  $0 clean-all          # Nuclear reset (destroys everything)
   $0 vm-snapshot clean  # Create 'clean' snapshot
   $0 vm-restore clean   # Restore from 'clean' snapshot
   $0 vm-list            # List available snapshots
@@ -90,10 +90,10 @@ EXAMPLES:
   $0 vm-clone           # Restore pristine snapshot (after git clone)
   
   # Automation Examples (no prompts):
-  $0 cleanup-all --force     # Full reset without confirmation
+  $0 clean-all --force       # Full reset without confirmation
   $0 vm-rebuild --yes        # Rebuild VM without confirmation
   $0 setup --reset --force   # Complete setup from scratch without confirmation
-  $0 cleanup --force         # Show automation commands
+  $0 clean --force           # Show automation commands
   
   # VM optimized for ultra-fast downloads with parallel processing
 
@@ -115,14 +115,14 @@ parse_args() {
     local command=""
     local mode="$DEFAULT_MODE"
     local format="$DEFAULT_FORMAT"
-    local cleanup="$CLEANUP_LEVEL"
+    local clean="$CLEAN_LEVEL"
     local verbose=false
     local force=false
     local reset=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
+            test|setup|clean|clean-data|clean-vm|clean-snapshots|clean-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
                 command="$1"
                 # For vm-snapshot and vm-restore, capture the snapshot name
                 if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
@@ -133,14 +133,14 @@ parse_args() {
                     else
                         export SNAPSHOT_NAME="clean"
                     fi
-                # For cleanup-data, capture the level
-                elif [[ "$1" == "cleanup-data" ]]; then
+                # For clean-data, capture the level
+                elif [[ "$1" == "clean-data" ]]; then
                     shift
                     if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
-                        export CLEANUP_DATA_LEVEL="$1"
+                        export CLEAN_DATA_LEVEL="$1"
                         shift
                     else
-                        export CLEANUP_DATA_LEVEL="basic"
+                        export CLEAN_DATA_LEVEL="basic"
                     fi
                 else
                     shift
@@ -154,8 +154,8 @@ parse_args() {
                 format="$2"
                 shift 2
                 ;;
-            -c|--cleanup)
-                cleanup="$2"
+            -c|--clean)
+                clean="$2"
                 shift 2
                 ;;
             -v|--verbose)
@@ -211,10 +211,10 @@ parse_args() {
             ;;
     esac
     
-    case "$cleanup" in
+    case "$clean" in
         basic|full) ;;
         *)
-            print_message "RED" "❌ Invalid cleanup level: $cleanup"
+            print_message "RED" "❌ Invalid clean level: $clean"
             exit 1
             ;;
     esac
@@ -223,7 +223,7 @@ parse_args() {
     export TEST_COMMAND="$command"
     export TEST_MODE="$mode"
     export TEST_FORMAT="$format"
-    export TEST_CLEANUP="$cleanup"
+    export TEST_CLEAN="$clean"
     export TEST_VERBOSE="$verbose"
     export TEST_FORCE="$force"
     export TEST_RESET="$reset"
@@ -251,7 +251,7 @@ setup_environment() {
     fi
     
     # Clean up previous artifacts
-    cleanup_artifacts "$TEST_CLEANUP"
+    clean_artifacts "$TEST_CLEAN"
     
     print_message "GREEN" "✅ Test environment set up successfully"
 }
@@ -524,24 +524,24 @@ main() {
                 fi
             fi
             ;;
-        cleanup)
-            print_header "Cleaning up Test Environment"
-            interactive_cleanup
+        clean)
+            print_header "Cleaning Test Environment"
+            interactive_clean
             ;;
-        cleanup-data)
-            local level="${CLEANUP_DATA_LEVEL:-basic}"
+        clean-data)
+            local level="${CLEAN_DATA_LEVEL:-basic}"
             print_header "Cleaning Test Data ($level)"
-            cleanup_test_data "$level"
+            clean_test_data "$level"
             ;;
-        cleanup-vm)
+        clean-vm)
             print_header "Cleaning VM Test Data"
-            cleanup_vm_data
+            clean_vm_data
             ;;
-        cleanup-snapshots)
+        clean-snapshots)
             print_header "Removing VM Snapshots"
-            cleanup_vm_snapshots
+            clean_vm_snapshots
             ;;
-        cleanup-all)
+        clean-all)
             print_header "Full Environment Reset"
             if [[ "$TEST_FORCE" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Performing full environment reset without confirmation"
@@ -846,7 +846,7 @@ main() {
 }
 
 # Trap to ensure cleanup on exit
-trap 'cleanup_artifacts basic >/dev/null 2>&1' EXIT
+trap 'clean_artifacts basic >/dev/null 2>&1' EXIT
 
 # Run main function with all arguments
 main "$@"
