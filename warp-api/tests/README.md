@@ -48,6 +48,12 @@ cd <repository>/warp-api/tests
 ./test.sh                    # Run tests with automatic snapshot restore (30 seconds)
 ```
 
+### System Capability Commands
+```bash
+./test.sh check-system       # Comprehensive system capability analysis
+./test.sh check-system-quick # Quick capability check
+```
+
 ### VM Management Commands
 ```bash
 ./test.sh vm-status          # Check VM status
@@ -87,6 +93,35 @@ cd <repository>/warp-api/tests
 ```bash
 ./test.sh test -m host
 ```
+
+## 🔍 System Capability Checking
+
+### **Automatic Pre-flight Checks**
+The testing environment automatically validates your system's capability to handle VirtualBox testing:
+
+- **RAM Analysis**: Ensures sufficient memory (8GB+ recommended, 6GB+ available)
+- **CPU Validation**: Checks core count and virtualization support (VT-x/AMD-V)
+- **Disk Space**: Verifies adequate storage (20GB+ for VM + snapshots)
+- **Software Dependencies**: Confirms VirtualBox, Vagrant, and Python availability
+- **Virtualization Support**: Tests hardware virtualization and KVM availability
+
+### **Capability Check Commands**
+```bash
+# Comprehensive analysis with detailed report
+./test.sh check-system
+
+# Quick check for automation/scripts
+./test.sh check-system-quick
+
+# Force testing despite capability warnings
+./test.sh test --force
+```
+
+### **Automatic Integration**
+Every VM test run automatically performs a quick capability check:
+- ✅ **Pass**: Testing proceeds normally
+- ❌ **Fail**: Testing stops with actionable recommendations
+- 🚑 **Force Mode**: Bypass checks with `--force` flag
 
 ## 🎯 Key Features
 

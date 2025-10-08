@@ -108,23 +108,43 @@ api.run_basic_test()   # Run tests
 - **Process Checks**: Confirms Warp is running
 - **Emergency Unlock**: `Ctrl+Alt+F3` then `pkill -f xtrlock`
 
-## ⚠️ Requirements
+## ⚠️ System Requirements
 
-**Host System:**
-- Linux with X11 (Ubuntu 20.04+)
-- Python 3.7+ with pip
-- VirtualBox 6.1+ and Vagrant 2.2+ (for VM testing)
-- Git (for repository cloning and version control)
+### **Recommended Host System**
+- **RAM**: 8GB+ total (6GB+ available recommended)
+- **CPU**: 4+ cores (Intel VT-x/AMD-V virtualization support required)
+- **Disk**: 20GB+ available space
+- **OS**: Linux with X11 (Ubuntu 20.04+)
+- **Virtualization**: Hardware virtualization enabled in BIOS
 
-**Auto-installed in VM:**
+### **Required Software**
+- **VirtualBox**: 6.1+ with kernel modules loaded
+- **Vagrant**: 2.2+ for VM orchestration
+- **Python**: 3.7+ with pip
+- **Git**: For repository cloning and version control
+
+### **VM Specifications** (Auto-configured)
+- **RAM**: 4GB allocated to VM
+- **CPUs**: 2 cores allocated to VM
+- **OS**: Ubuntu 22.04 LTS with GNOME desktop
+- **Storage**: ~8GB for VM image + snapshots
+
+### **Auto-installed in VM**
 - Warp Terminal (latest version)
 - System utilities: xdotool, wmctrl, xtrlock
 - Python packages: pyautogui, pillow
 - BATS testing framework
 
-**Development Dependencies:**
+### **Development Dependencies** (Optional)
 - pyautogui (for GUI automation): `pip install pyautogui`
-- Optional: pytest for additional testing
+- pytest for additional testing
+
+### **🔍 System Capability Check**
+```bash
+cd tests/
+./test.sh check-system          # Comprehensive capability analysis
+./test.sh check-system-quick     # Quick capability check
+```
 
 ## 📁 Project Structure
 
@@ -147,11 +167,41 @@ warp-api/
     └── screenshots/     # Visual verification captures
 ```
 
+## 🛠️ Troubleshooting
+
+### **System Capability Issues**
+
+**❌ Insufficient RAM**
+- **Problem**: Less than 8GB total RAM or 6GB available
+- **Solution**: Close other applications or add more RAM
+- **Command**: `./test.sh check-system` for detailed analysis
+
+**❌ Hardware Virtualization Disabled**
+- **Problem**: VT-x/AMD-V not enabled in BIOS
+- **Solution**: Enable virtualization in BIOS/UEFI settings
+- **Check**: `grep -q "vmx\|svm" /proc/cpuinfo && echo "Supported" || echo "Not supported"`
+
+**❌ VirtualBox Issues**
+- **Problem**: VirtualBox not installed or kernel modules not loaded
+- **Solution**: Install/reinstall VirtualBox: `sudo apt install virtualbox virtualbox-ext-pack`
+- **Module fix**: `sudo modprobe vboxdrv`
+
+**❌ Low Disk Space**
+- **Problem**: Less than 20GB available space
+- **Solution**: Free up disk space or use different storage location
+- **Check**: `df -h .`
+
+### **VM Performance Issues**
+- Use `./test.sh vm-reset` to restore clean VM state
+- Check system capability: `./test.sh check-system`
+- Force testing despite warnings: `./test.sh test --force`
+
 ## 🎯 Use Cases
 
 - **Development Workflows** - Automated terminal environment setup and management
 - **GUI Testing** - Comprehensive automation testing for Warp terminal functionality  
 - **Continuous Integration** - TAP-compliant test results for CI/CD pipelines
+- **System Validation** - Pre-flight checks for VirtualBox testing capability
 - **Demonstrations** - Reproducible terminal presentations and tutorials
 - **Quality Assurance** - Pixel-perfect verification of GUI behavior
 - **Research & Analysis** - Programmatic analysis of terminal GUI interactions
