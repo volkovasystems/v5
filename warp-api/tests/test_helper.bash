@@ -956,7 +956,7 @@ check_system_capabilities() {
     
     local issues=0
     local warnings=0
-    local report_file="$(pwd)/system_capability_report_$(date +%Y%m%d_%H%M%S).txt"
+    local report_file="$REPORTS_DIR/system_capability_report_$(date +%Y%m%d_%H%M%S).txt"
     
     {
         echo "WARP API VIRTUALBOX SYSTEM CAPABILITY REPORT"
