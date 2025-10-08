@@ -31,7 +31,7 @@ Warp API Test Runner - Runs pixel-perfect Warp Terminal API tests
 COMMANDS:
   test              Run all tests (default)
   setup             Set up test environment only
-  setup --reset     Set up test environment from complete scratch (destroys VM)
+  setup-reset       Complete environment reset and setup (calls clean-all first)
   clean             Clean up test artifacts (interactive menu)
   check-system      Check host system capability for VirtualBox testing
   check-system-quick Quick system capability check
@@ -67,7 +67,6 @@ OPTIONS:
   -c, --clean LEVEL     Clean level: basic|full (default: basic)
   -v, --verbose         Enable verbose output
   -y, --yes, --force    Skip interactive prompts (for automation)
-  -r, --reset           Reset from scratch (for setup command)
   -h, --help            Show this help message
 
 EXAMPLES:
@@ -78,7 +77,7 @@ EXAMPLES:
   $0 vm-init               # Initialize VM for first time (one-time setup)
   $0 vm-restart            # Force restart VM (perfect after interruptions)
   $0 setup                 # Set up test environment only
-  $0 setup --reset         # Set up from complete scratch (destroys VM)
+  $0 setup-reset           # Complete environment reset and setup (destructive)
   $0 clean                 # Interactive clean menu
   $0 clean-data         # Comprehensive test data cleanup
   $0 vm-reset           # Reset VM to clean state
@@ -95,7 +94,7 @@ EXAMPLES:
   # Automation Examples (no prompts):
   $0 clean-all --force       # Full reset without confirmation
   $0 vm-rebuild --yes        # Rebuild VM without confirmation
-  $0 setup --reset --force   # Complete setup from scratch without confirmation
+  $0 setup-reset --force     # Complete reset and setup without confirmation
   $0 clean --force           # Show automation commands
   
   # VM optimized for ultra-fast downloads with parallel processing
@@ -121,11 +120,10 @@ parse_args() {
     local clean="$CLEAN_LEVEL"
     local verbose=false
     local force=false
-    local reset=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            test|setup|clean|clean-data|clean-vm|clean-logs|clean-reports|clean-results|clean-screenshots|clean-snapshots|clean-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
+            test|setup|setup-reset|clean|clean-data|clean-vm|clean-logs|clean-reports|clean-results|clean-screenshots|clean-snapshots|clean-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
                 command="$1"
                 # For vm-snapshot and vm-restore, capture the snapshot name
                 if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
@@ -158,10 +156,6 @@ parse_args() {
                 ;;
             -y|--yes|--force)
                 force=true
-                shift
-                ;;
-            -r|--reset)
-                reset=true
                 shift
                 ;;
             -h|--help)
@@ -220,7 +214,6 @@ parse_args() {
     export TEST_CLEAN="$clean"
     export TEST_VERBOSE="$verbose"
     export TEST_FORCE="$force"
-    export TEST_RESET="$reset"
 }
 
 #######################################
@@ -449,74 +442,70 @@ main() {
     
     case "$TEST_COMMAND" in
         setup)
-            if [[ "$TEST_RESET" == "true" ]]; then
-                print_header "Setting up Test Environment from Scratch"
-                print_message "RED" "🚨 RESET MODE: This will destroy the current VM and rebuild from scratch!"
-                
-                if [[ "$TEST_FORCE" == "true" ]]; then
-                    print_message "YELLOW" "⚠️ Force mode: Rebuilding without confirmation"
-                    confirmed="y"
-                else
-                    print_message "YELLOW" "⚠️ Are you sure you want to completely rebuild the VM? (y/N)"
-                    read -p "Confirm complete reset: " confirmed
-                fi
-                
-                if [[ "$confirmed" =~ ^[Yy]$ ]]; then
-                    print_message "BLUE" "🧨 Destroying current VM and rebuilding from scratch..."
-                    
-                    # First setup the basic environment (sync files, etc.)
-                    setup_environment
-                    
-                    if [[ "$TEST_MODE" == "vm" ]]; then
-                        # Destroy and rebuild VM completely
-                        print_message "BLUE" "💥 Destroying current VM..."
-                        vagrant destroy -f >/dev/null 2>&1 || true
-                        
-                        # Clean up any remaining VirtualBox artifacts
-                        print_message "BLUE" "🧹 Cleaning up VM artifacts..."
-                        VBoxManage unregistervm "$VM_NAME" --delete >/dev/null 2>&1 || true
-                        
-                        # Remove any existing snapshots or state
-                        rm -rf .vagrant/ >/dev/null 2>&1 || true
-                        
-                        # Start fresh VM setup
-                        print_message "BLUE" "🚀 Creating fresh VM from scratch..."
-                        if ! vagrant up --provision; then
-                            print_message "RED" "❌ Failed to create fresh VM"
-                            exit 1
-                        fi
-                        
-                        # Wait for GUI to be ready
-                        if ! wait_for_vm_gui; then
-                            print_message "YELLOW" "⚠️ VM created but GUI may not be fully ready"
-                        fi
-                        
-                        # Create clean snapshot for future use
-                        print_message "BLUE" "📸 Creating fresh 'clean' snapshot..."
-                        if create_vm_snapshot "clean" "Fresh clean state after reset $(date)"; then
-                            print_message "GREEN" "✅ Fresh VM created successfully with clean snapshot!"
-                            print_message "BLUE" "💡 VM is ready for testing with: ./test.sh test"
-                        else
-                            print_message "GREEN" "✅ Fresh VM created successfully!"
-                            print_message "YELLOW" "⚠️ Snapshot creation failed, but VM is ready"
-                        fi
-                    fi
-                    
-                    print_message "GREEN" "🎉 Complete environment reset finished successfully!"
-                else
-                    print_message "BLUE" "Operation cancelled - using regular setup instead"
-                    setup_environment
-                    if [[ "$TEST_MODE" == "vm" ]]; then
-                        setup_vm_environment
-                    fi
-                fi
+            # Regular setup without reset
+            print_header "Setting up Test Environment"
+            setup_environment
+            if [[ "$TEST_MODE" == "vm" ]]; then
+                setup_vm_environment
+            fi
+            ;;
+        setup-reset)
+            print_header "Complete Environment Reset and Setup"
+            print_message "RED" "🚨 This will perform a complete environment reset followed by setup!"
+            print_message "BLUE" "💫 This is equivalent to: clean-all + setup"
+            
+            # Execute clean-all first (with same force behavior)
+            if [[ "$TEST_FORCE" == "true" ]]; then
+                print_message "YELLOW" "🚨 Force mode: Performing full environment reset without confirmation"
+                reset_full_environment
             else
-                # Regular setup without reset
-                setup_environment
-                if [[ "$TEST_MODE" == "vm" ]]; then
-                    setup_vm_environment
+                print_message "RED" "🚨 This will destroy EVERYTHING and then rebuild! Are you sure? (y/N)"
+                read -p "Confirm complete reset and setup: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                    reset_full_environment
+                else
+                    print_message "BLUE" "Operation cancelled"
+                    exit 0
                 fi
             fi
+            
+            # Now perform setup after clean-all
+            print_message "BLUE" "🚀 Starting fresh setup after complete reset..."
+            setup_environment
+            if [[ "$TEST_MODE" == "vm" ]]; then
+                # Initialize VM from scratch
+                print_message "BLUE" "🎆 Initializing VM from scratch..."
+                if ! vagrant up --provision; then
+                    print_message "RED" "❌ Failed to initialize VM"
+                    exit 1
+                fi
+                
+                # Wait for GUI
+                if ! wait_for_vm_gui; then
+                    print_message "RED" "❌ VM GUI not ready"
+                    exit 1
+                fi
+                
+                # Create clean snapshot
+                print_message "BLUE" "📸 Creating 'clean' snapshot for reuse..."
+                if create_vm_snapshot "clean" "Base clean state after complete reset"; then
+                    print_message "GREEN" "✅ VM initialized successfully with 'clean' snapshot!"
+                    
+                    # Also create pristine snapshot for repository
+                    print_message "BLUE" "📸 Creating pristine snapshot for repository..."
+                    if create_pristine_snapshot; then
+                        print_message "GREEN" "✅ Pristine snapshot created for repository!"
+                        print_message "BLUE" "💡 You can now run tests with: ./test.sh test"
+                        print_message "BLUE" "💾 Pristine snapshot is ready for git commit"
+                    else
+                        print_message "YELLOW" "⚠️ Pristine snapshot creation failed, but VM is ready"
+                    fi
+                else
+                    print_message "YELLOW" "⚠️ VM setup complete but snapshot creation failed"
+                fi
+            fi
+            
+            print_message "GREEN" "🎉 Complete environment reset and setup finished successfully!"
             ;;
         clean)
             print_header "Cleaning Test Environment"

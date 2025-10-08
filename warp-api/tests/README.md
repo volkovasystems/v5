@@ -99,6 +99,7 @@ cd <repository>/warp-api/tests
 ### Other Commands
 ```bash
 ./test.sh setup              # Set up test environment only
+./test.sh setup-reset        # Complete environment reset and setup (destructive)
 ./test.sh test -f pretty     # Run tests with pretty output
 ./test.sh sync               # Sync API file
 ```
@@ -503,10 +504,24 @@ Provides an interactive menu with all clean options and safety confirmations.
 - **DESTRUCTIVE**: Everything is lost
 - Requires confirmation (use `--force` to skip)
 
+#### Complete Environment Reset and Setup
+```bash
+./test.sh setup-reset
+```
+- **Equivalent to**: `clean-all` followed by `setup`
+- Performs complete environment reset first (same as `clean-all`)
+- Then initializes fresh VM environment from scratch
+- Creates new 'clean' and 'pristine' snapshots
+- **One-step solution**: Complete reset and ready-to-test environment
+- **DESTRUCTIVE**: Everything is destroyed and rebuilt
+- Requires confirmation (use `--force` to skip)
+- **Perfect for**: Starting completely fresh or fixing corrupted environments
+
 ### Automation Support
 All destructive operations support force mode for automation:
 ```bash
 ./test.sh clean-all --force       # No confirmation prompts
+./test.sh setup-reset --force     # Complete reset and setup without prompts
 ./test.sh vm-rebuild --yes        # Skip confirmations
 ./test.sh clean-snapshots --force
 ```
@@ -531,6 +546,8 @@ All destructive operations support force mode for automation:
 
 #### When Everything is Broken
 ```bash
+./test.sh setup-reset --force    # Complete reset and setup in one command
+# OR the two-step approach:
 ./test.sh clean-all --force      # Nuclear option
 ./test.sh vm-init                # Reinitialize
 ```
