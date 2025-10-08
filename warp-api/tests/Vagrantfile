@@ -44,81 +44,159 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--nestedpaging", "on"]
   end
 
-  # ULTRA-FAST SETUP - Parallel processing and minimal packages
-  config.vm.provision "ultra_fast_setup", type: "shell", run: "once", inline: <<-SHELL
+  # ROBUST SETUP - Error handling and graceful fallbacks
+  config.vm.provision "robust_setup", type: "shell", run: "once", inline: <<-SHELL
+    set -e  # Exit on any error
     export DEBIAN_FRONTEND=noninteractive
     
-    echo "🚀 ULTRA-FAST VM Setup - Parallel Processing Enabled"
+    echo "🚀 ROBUST VM Setup - With Error Handling"
     echo "⏰ Starting at: $(date)"
     
-    # Enable parallel package downloads and processing
-    echo 'APT::Acquire::Max-Default "16";' > /etc/apt/apt.conf.d/99parallel
-    echo 'APT::Acquire::Retries "3";' >> /etc/apt/apt.conf.d/99parallel
-    echo 'Dpkg::Options {"--force-confold"};' >> /etc/apt/apt.conf.d/99parallel
+    # Function to handle errors gracefully
+    handle_error() {
+        echo "❌ Error occurred in: $1"
+        echo "⚠️ Continuing with setup, but some features may be limited"
+        return 0  # Don't fail the entire setup
+    }
     
-    # Fastest package update
-    echo "📦 Updating package lists with parallel processing..."
-    apt-get update -qq -o Acquire::Queue-Mode=access &
+    # Function to retry commands
+    retry_command() {
+        local max_attempts=3
+        local delay=5
+        local attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+            if eval "$1"; then
+                return 0
+            else
+                echo "⚠️ Attempt $attempt failed, retrying in ${delay}s..."
+                sleep $delay
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))  # Exponential backoff
+            fi
+        done
+        
+        handle_error "$2"
+        return 1
+    }
     
-    # Prepare package lists in background
-    {
-      # Essential GUI packages (minimal set)
-      PACKAGES="ubuntu-desktop-minimal firefox curl wget python3 python3-pip xdotool wmctrl imagemagick"
-      
-      # Pre-download packages in parallel
-      apt-get download $PACKAGES >/dev/null 2>&1 &
-    } &
+    # Safer APT configuration
+    echo "📋 Configuring APT for reliability..."
+    cat > /etc/apt/apt.conf.d/99robust-setup << 'EOF'
+APT::Acquire::Retries "5";
+APT::Acquire::Queue-Mode "host";
+DPkg::Options {
+   "--force-confold";
+   "--force-confdef";
+};
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+EOF
     
-    # Wait for update to complete
-    wait
+    # Update package lists with retry
+    echo "📦 Updating package lists..."
+    retry_command "apt-get update -qq" "package list update"
     
-    echo "⚡ Installing essential packages with parallel processing..."
-    # Install with maximum parallelism and minimal recommendations
-    apt-get install -y --no-install-recommends \
-      -o DPkg::Options::="--force-confold" \
-      -o APT::Install-Suggests="false" \
-      ubuntu-desktop-minimal \
-      firefox \
-      curl \
-      wget \
-      python3 \
-      python3-pip \
-      xdotool \
-      wmctrl \
-      imagemagick \
-      aria2 &  # Add aria2 for faster downloads
+    # Install packages in stages to handle failures better
+    echo "⚡ Installing core packages..."
     
-    # Parallel Warp Terminal download
-    {
-      echo "🔥 Downloading Warp Terminal..."
-      # Use aria2 for parallel downloading if available, fallback to curl
-      if command -v aria2c >/dev/null 2>&1; then
-        aria2c -x 8 -s 8 -k 1M https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb ||
-        curl -fsSL https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb
-      else
-        curl -fsSL https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb ||
-        wget -q --timeout=30 --tries=3 https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -O warp-terminal.deb
-      fi
-    } &
+    # Stage 1: Essential system packages (fix pip issue)
+    retry_command "apt-get install -y curl wget python3" "core system packages"
     
-    # Parallel Python package installation
-    {
-      echo "🐍 Installing Python automation packages..."
-      # Install essential Python packages only
-      sudo -u vagrant python3 -m pip install --user --no-warn-script-location pyautogui pillow
-    } &
+    # Fix the pip installation issue that caused the red error
+    echo "🔧 Installing pip properly to avoid 'No module named pip' error..."
+    apt-get install -y python3-pip python3-setuptools python3-wheel >/dev/null 2>&1 || {
+        echo "📥 Installing pip via get-pip.py to fix the error..."
+        curl -fsSL https://bootstrap.pypa.io/get-pip.py -o get-pip.py 2>/dev/null
+        python3 get-pip.py --user >/dev/null 2>&1
+        rm -f get-pip.py
+    }
     
-    # Wait for all parallel installations
-    wait
+    # Verify pip is working (suppress error output)
+    python3 -m pip --version >/dev/null 2>&1 || echo "⚠️ pip may need manual setup later"
     
-    # Install Warp Terminal
-    if [ -f warp-terminal.deb ]; then
-      echo "📦 Installing Warp Terminal..."
-      dpkg -i warp-terminal.deb || apt-get install -f -y >/dev/null 2>&1
-      rm warp-terminal.deb
-      echo "✅ Warp Terminal installed successfully"
+    # Stage 2: GUI automation tools
+    echo "🖱️ Installing GUI automation tools..."
+    retry_command "apt-get install -y xdotool wmctrl imagemagick" "GUI automation tools"
+    
+    # Stage 3: Desktop environment (optional, continue if fails)
+    echo "🖥️ Installing minimal desktop environment..."
+    if ! retry_command "apt-get install -y ubuntu-desktop-minimal" "desktop environment"; then
+        echo "⚠️ Desktop install failed, trying GNOME core instead..."
+        retry_command "apt-get install -y gnome-shell gnome-terminal firefox" "GNOME core" || handle_error "all desktop installs"
+    fi
+    
+    # Stage 4: Python packages with better error handling
+    echo "🐍 Installing Python automation packages..."
+    
+    # Create a proper environment for Python packages
+    export PATH="/home/vagrant/.local/bin:$PATH"
+    
+    # Install Python packages as vagrant user with better error handling
+    sudo -u vagrant bash -c '
+        export PATH="/home/vagrant/.local/bin:$PATH"
+        
+        # Install packages one by one to avoid complete failure
+        echo "🐍 Installing Python packages individually..."
+        
+        for package in pyautogui pillow opencv-python-headless; do
+            if python3 -m pip install --user --no-warn-script-location "$package" >/dev/null 2>&1; then
+                echo "✅ $package installed"
+            else
+                echo "⚠️ $package failed, continuing..."
+            fi
+        done
+        
+        # Fallback to system packages for essential ones
+        if ! python3 -c "import PIL" >/dev/null 2>&1; then
+            echo "📦 Installing Pillow via system package..."
+            sudo apt-get install -y python3-pil >/dev/null 2>&1 || true
+        fi
+    '
+    
+    # Stage 5: Download Warp Terminal (fix 404 error by using correct URL)
+    echo "🔥 Downloading Warp Terminal..."
+    
+    WARP_SUCCESS=false
+    
+    # Fix the 404 error by using the correct Warp download URL
+    WARP_URLS=(
+        "https://releases.warp.dev/stable/latest/warp-terminal_amd64.deb"
+        "https://app.warp.dev/download?package=deb"
+        "https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb"
+    )
+    
+    for url in "${WARP_URLS[@]}"; do
+        echo "Trying URL: $url"
+        if curl -fsSL --connect-timeout 30 --max-time 300 "$url" -o warp-terminal.deb >/dev/null 2>&1; then
+            # Verify the file is actually a .deb package
+            if file warp-terminal.deb | grep -q "Debian binary package"; then
+                WARP_SUCCESS=true
+                echo "✅ Warp Terminal downloaded successfully"
+                break
+            else
+                echo "⚠️ Downloaded file is not a valid .deb package, trying next URL..."
+                rm -f warp-terminal.deb
+            fi
+        fi
+    done
+    
+    if [ "$WARP_SUCCESS" != true ]; then
+        echo "⚠️ All Warp download URLs failed - VM will work without Warp Terminal"
+    fi
+    
+    # Install Warp Terminal if download succeeded
+    if [ "$WARP_SUCCESS" = true ] && [ -f warp-terminal.deb ]; then
+        echo "📦 Installing Warp Terminal..."
+        if dpkg -i warp-terminal.deb; then
+            echo "✅ Warp Terminal installed successfully"
+        else
+            echo "🔧 Fixing dependencies..."
+            apt-get install -f -y && dpkg -i warp-terminal.deb || handle_error "Warp Terminal installation"
+        fi
+        rm -f warp-terminal.deb
     else
-      echo "⚠️ Warning: Could not download Warp Terminal"
+        echo "⚠️ Skipping Warp Terminal installation due to download failure"
     fi
     
     # Create optimized directory structure

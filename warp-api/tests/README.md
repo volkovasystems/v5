@@ -27,12 +27,23 @@ tests/
 
 ## 🚀 Quick Start
 
+⚠️ **IMPORTANT**: Always run tests in VM mode to avoid shutting down your active Warp terminal!
+
+### 🔒 Safe Testing (Recommended)
+```bash
+# Safe test runner - VM mode only, protects your active Warp terminal
+./run_tests_safe.sh         # Always uses VM, prevents host testing
+
+# Or use the main script with explicit VM mode
+./test.sh test              # Defaults to VM mode (safe)
+```
+
 ### 🎆 Zero-Setup Testing (Instant After Clone)
 ```bash
 # Clone repository and test immediately - no setup needed!
 git clone <repository-url>
 cd <repository>/warp-api/tests
-./test.sh test              # Automatic pristine VM restore + testing (30s)
+./run_tests_safe.sh         # Automatic pristine VM restore + testing (30s)
 ```
 
 > This works because pristine VM snapshots are preserved in the repository using `.gitkeep` files and smart `.gitignore` patterns.
@@ -89,10 +100,16 @@ cd <repository>/warp-api/tests
 ./test.sh sync               # Sync API file
 ```
 
-### Run Tests on Host (Development)
+### ⚠️ Host Mode Testing (Dangerous - Not Recommended)
 ```bash
+# HOST MODE DISABLED FOR SAFETY!
+# Host mode can shut down your active Warp terminal
+# To enable host mode (dangerous):
+export FORCE_VM_MODE=false
 ./test.sh test -m host
 ```
+
+**Note**: Host mode testing is disabled by default to prevent accidentally shutting down your Warp terminal. Use VM mode instead.
 
 ## 🔍 System Capability Checking
 

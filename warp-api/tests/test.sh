@@ -16,6 +16,9 @@ DEFAULT_MODE="vm"
 DEFAULT_FORMAT="tap"
 CLEANUP_LEVEL="basic"
 
+# Safety: NEVER allow host mode by default to prevent terminal shutdown
+FORCE_VM_MODE="true"
+
 #######################################
 # Display usage information
 #######################################
@@ -35,6 +38,7 @@ COMMANDS:
   vm-stop           Stop the VM
   vm-status         Show VM status
   vm-init           Initialize VM for first time (with snapshot)
+  vm-restart        Force restart VM and re-provision (handles interrupted setups)
   vm-reset          Reset VM to clean snapshot state
   vm-rebuild        Destroy and rebuild VM from scratch
   vm-snapshot       Create a new VM snapshot
@@ -66,6 +70,7 @@ EXAMPLES:
   $0 check-system          # Check if system can handle VirtualBox testing
   $0 check-system-quick    # Quick system capability check
   $0 vm-init               # Initialize VM for first time (one-time setup)
+  $0 vm-restart            # Force restart VM (perfect after interruptions)
   $0 setup                 # Set up test environment only
   $0 cleanup               # Interactive cleanup menu
   $0 cleanup-data basic # Basic test data cleanup
@@ -112,7 +117,7 @@ parse_args() {
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
+            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|check-system|check-system-quick|vm-start|vm-stop|vm-status|vm-init|vm-restart|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
                 command="$1"
                 # For vm-snapshot and vm-restore, capture the snapshot name
                 if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
@@ -172,6 +177,15 @@ parse_args() {
     command="${command:-test}"
     
     # Validate arguments
+    # Safety check: Prevent host mode unless explicitly forced with special flag
+    if [[ "$mode" == "host" ]] && [[ "$FORCE_VM_MODE" == "true" ]]; then
+        print_message "RED" "🚨 HOST MODE DISABLED FOR SAFETY!"
+        print_message "YELLOW" "⚠️ Host mode can shut down your active Warp terminal."
+        print_message "BLUE" "💡 Use VM mode instead: ./test.sh test"
+        print_message "BLUE" "💡 To force host mode (dangerous): export FORCE_VM_MODE=false && ./test.sh test -m host"
+        exit 1
+    fi
+    
     case "$mode" in
         vm|host) ;;
         *) 
@@ -373,7 +387,9 @@ VMEOF"
 run_host_tests() {
     print_header "Running Tests on Host"
     
-    print_message "YELLOW" "⚠️ Warning: Host mode may conflict with your active Warp instance"
+    print_message "RED" "🚨 DANGER: Running tests on host machine!"
+    print_message "YELLOW" "⚠️ Warning: This WILL shut down your active Warp terminal!"
+    print_message "BLUE" "💡 Consider using VM mode instead: ./test.sh test"
     
     local session_log=$(create_session_log)
     
@@ -463,7 +479,7 @@ main() {
             
             # Ensure VM is running and fully provisioned
             print_message "BLUE" "🚀 Starting initial VM setup..."
-            if ! vagrant up; then
+            if ! vagrant up --provision; then
                 print_message "RED" "❌ Failed to initialize VM"
                 exit 1
             fi
@@ -493,13 +509,85 @@ main() {
                 print_message "YELLOW" "⚠️ VM setup complete but snapshot creation failed"
             fi
             ;;
+        vm-restart)
+            print_header "Force Restarting VM and Re-provisioning"
+            print_message "BLUE" "🔄 This will stop the VM, restart it, and re-run provisioning"
+            print_message "BLUE" "💡 Perfect for recovering from interrupted setups!"
+            
+            # Stop VM if running (force stop)
+            print_message "YELLOW" "⏹️ Force stopping VM..."
+            vagrant halt -f >/dev/null 2>&1 || true
+            
+            # Kill any VirtualBox processes that might be hanging
+            print_message "BLUE" "🔧 Cleaning up any hanging processes..."
+            pkill -f "$VM_NAME" >/dev/null 2>&1 || true
+            
+            # Wait a moment for complete shutdown
+            sleep 3
+            
+            # Start VM with fresh provisioning
+            print_message "BLUE" "🚀 Starting VM with fresh provisioning..."
+            if vagrant up --provision; then
+                print_message "GREEN" "✅ VM restarted and provisioned successfully"
+                
+                # Wait for GUI to be ready
+                if wait_for_vm_gui; then
+                    print_message "GREEN" "🎯 VM is ready for testing!"
+                    
+                    # Optionally create/update clean snapshot
+                    if [[ "$TEST_FORCE" != "true" ]]; then
+                        print_message "BLUE" "📸 Update clean snapshot? (y/N)"
+                        read -p "Create snapshot: " create_snap
+                        if [[ "$create_snap" =~ ^[Yy]$ ]]; then
+                            create_vm_snapshot "clean" "Clean state after restart $(date)"
+                        fi
+                    fi
+                else
+                    print_message "YELLOW" "⚠️ VM restarted but GUI may not be fully ready"
+                fi
+            else
+                print_message "RED" "❌ Failed to restart and provision VM"
+                print_message "BLUE" "💡 Try: ./test.sh vm-rebuild for a complete rebuild"
+                exit 1
+            fi
+            ;;
         vm-reset)
             print_header "Resetting VM to Clean State"
+            print_message "BLUE" "🔄 Resetting VM to known clean state..."
+            
+            # If reset fails, offer alternatives
             if reset_vm_to_clean; then
                 print_message "GREEN" "✅ VM reset completed successfully"
             else
-                print_message "RED" "❌ VM reset failed"
-                exit 1
+                print_message "YELLOW" "⚠️ Clean snapshot reset failed"
+                
+                if [[ "$TEST_FORCE" != "true" ]]; then
+                    print_message "BLUE" "💡 Would you like to try a force restart instead? (y/N)"
+                    read -p "Force restart: " restart_choice
+                    if [[ "$restart_choice" =~ ^[Yy]$ ]]; then
+                        print_message "BLUE" "🔄 Switching to force restart..."
+                        # Stop VM and restart with provisioning
+                        vagrant halt -f >/dev/null 2>&1 || true
+                        sleep 2
+                        if vagrant up --provision; then
+                            if wait_for_vm_gui; then
+                                print_message "GREEN" "✅ VM force restart completed successfully"
+                            else
+                                print_message "YELLOW" "⚠️ VM restarted but GUI may not be ready"
+                            fi
+                        else
+                            print_message "RED" "❌ Force restart also failed"
+                            exit 1
+                        fi
+                    else
+                        print_message "RED" "❌ VM reset failed"
+                        print_message "BLUE" "💡 Try: ./test.sh vm-restart or ./test.sh vm-rebuild"
+                        exit 1
+                    fi
+                else
+                    print_message "RED" "❌ VM reset failed in force mode"
+                    exit 1
+                fi
             fi
             ;;
         vm-rebuild)
