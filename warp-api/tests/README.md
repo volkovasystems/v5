@@ -419,7 +419,7 @@ Provides an interactive menu with all clean options and safety confirmations.
 ./test.sh clean-vm
 ```
 - Stops VM if running
-- Removes ALL contents of .vagrant directory (except .gitkeep files)
+- Removes ALL contents of .vagrant directory (preserves .gitkeep files)
 - Cleans all test data directories (logs, reports, results, screenshots)
 - Removes synced files and archives
 - **Destructive**: VM state, snapshots, and configuration are completely removed
