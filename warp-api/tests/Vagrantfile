@@ -52,6 +52,25 @@ Vagrant.configure("2") do |config|
     echo "🚀 ROBUST VM Setup - With Error Handling"
     echo "⏰ Starting at: $(date)"
     
+    # Function to show progress in GUI (if available)
+    show_progress() {
+        local message="$1"
+        local step="$2"
+        local total="$3"
+        
+        echo "$message"
+        
+        # Try to show progress in GUI if X is running
+        if command -v notify-send >/dev/null 2>&1 && [ -n "$DISPLAY" ] 2>/dev/null; then
+            notify-send "VM Setup Progress" "[$step/$total] $message" 2>/dev/null &
+        fi
+        
+        # Also try to show in any open terminal
+        if command -v wall >/dev/null 2>&1; then
+            echo "[VM Setup $step/$total] $message" | wall 2>/dev/null || true
+        fi
+    }
+    
     # Function to handle errors gracefully
     handle_error() {
         echo "❌ Error occurred in: $1"
@@ -94,17 +113,17 @@ APT::Install-Suggests "false";
 EOF
     
     # Update package lists with retry
-    echo "📦 Updating package lists..."
+    show_progress "Updating package lists..." "1" "8"
     retry_command "apt-get update -qq" "package list update"
     
     # Install packages in stages to handle failures better
-    echo "⚡ Installing core packages..."
+    show_progress "Installing core packages..." "2" "8"
     
     # Stage 1: Essential system packages (fix pip issue)
     retry_command "apt-get install -y curl wget python3" "core system packages"
     
     # Fix the pip installation issue that caused the red error
-    echo "🔧 Installing pip properly to avoid 'No module named pip' error..."
+    show_progress "Installing pip properly..." "3" "8"
     apt-get install -y python3-pip python3-setuptools python3-wheel >/dev/null 2>&1 || {
         echo "📥 Installing pip via get-pip.py to fix the error..."
         curl -fsSL https://bootstrap.pypa.io/get-pip.py -o get-pip.py 2>/dev/null
@@ -116,18 +135,18 @@ EOF
     python3 -m pip --version >/dev/null 2>&1 || echo "⚠️ pip may need manual setup later"
     
     # Stage 2: GUI automation tools
-    echo "🖱️ Installing GUI automation tools..."
+    show_progress "Installing GUI automation tools..." "4" "8"
     retry_command "apt-get install -y xdotool wmctrl imagemagick" "GUI automation tools"
     
     # Stage 3: Desktop environment (optional, continue if fails)
-    echo "🖥️ Installing minimal desktop environment..."
+    show_progress "Installing minimal desktop environment..." "5" "8"
     if ! retry_command "apt-get install -y ubuntu-desktop-minimal" "desktop environment"; then
         echo "⚠️ Desktop install failed, trying GNOME core instead..."
         retry_command "apt-get install -y gnome-shell gnome-terminal firefox" "GNOME core" || handle_error "all desktop installs"
     fi
     
     # Stage 4: Python packages with better error handling
-    echo "🐍 Installing Python automation packages..."
+    show_progress "Installing Python automation packages..." "6" "8"
     
     # Create a proper environment for Python packages
     export PATH="/home/vagrant/.local/bin:$PATH"
@@ -155,7 +174,7 @@ EOF
     '
     
     # Stage 5: Download Warp Terminal (fix 404 error by using correct URL)
-    echo "🔥 Downloading Warp Terminal..."
+    show_progress "Downloading Warp Terminal..." "7" "8"
     
     WARP_SUCCESS=false
     
@@ -199,8 +218,82 @@ EOF
         echo "⚠️ Skipping Warp Terminal installation due to download failure"
     fi
     
+    # Configure auto-login for visible setup process
+    show_progress "Configuring GUI and finalizing setup..." "8" "8"
+    
+    # Set up password-less login for vagrant user
+    echo "🔐 Setting up password-less login for vagrant user..."
+    passwd -d vagrant  # Remove password requirement
+    
+    # Enable auto-login for vagrant user
+    mkdir -p /etc/gdm3
+    cat > /etc/gdm3/custom.conf << 'EOF'
+# GDM configuration storage
+[daemon]
+# Force X11 instead of Wayland for better compatibility
+WaylandEnable=false
+DefaultSession=ubuntu.desktop
+
+# Enabling automatic login
+AutomaticLoginEnable = true
+AutomaticLogin = vagrant
+
+[security]
+
+[xdmcp]
+
+[chooser]
+
+[debug]
+Enable = true
+EOF
+
+    # Also set up LightDM as fallback (in case GDM3 has issues)
+    if command -v lightdm >/dev/null 2>&1; then
+        cat > /etc/lightdm/lightdm.conf << 'EOF'
+[Seat:*]
+autologin-user=vagrant
+autologin-user-timeout=0
+autologin-session=ubuntu
+EOF
+    fi
+    
+    # Set up a visible startup script that shows progress
+    cat > /home/vagrant/.profile << 'EOF'
+# Auto-start terminal with setup status on login
+if [ "$XDG_SESSION_TYPE" = "x11" ] || [ "$XDG_SESSION_TYPE" = "wayland" ]; then
+    # Wait a moment for desktop to load
+    sleep 3
+    
+    # Open terminal showing setup progress
+    gnome-terminal --title="Warp Testing VM - Ready!" --geometry=100x30 -- bash -c '
+        echo "\033[1;32m✅ Warp Testing VM Setup Complete!\033[0m"
+        echo "\033[1;34m🔧 Available commands:\033[0m"
+        echo "  - Run API tests: cd /home/vagrant/warp-testing && python3 warp_api.py"
+        echo "  - Check system: htop, df -h, free -h"
+        echo "  - GUI automation tools: xdotool, wmctrl"
+        echo ""
+        echo "\033[1;33m💡 This VM is ready for Warp terminal testing!\033[0m"
+        echo ""
+        echo "Press Enter to continue or Ctrl+C to exit..."
+        read
+        bash
+    ' &
+    
+    # Also show a desktop notification
+    notify-send "Warp Testing VM" "Setup complete! VM is ready for testing." &
+fi
+EOF
+    
+    chown vagrant:vagrant /home/vagrant/.profile
+    
+    # Restart display manager to apply auto-login immediately
+    echo "🔄 Restarting display manager to enable auto-login..."
+    systemctl restart gdm3 &
+    sleep 2  # Give it a moment to restart
+    
     # Create optimized directory structure
-    echo "📁 Creating test environment..."
+    echo "📱 Creating test environment..."
     sudo -u vagrant mkdir -p /home/vagrant/warp-testing/{logs,reports,results,screenshots}
     
     # Copy API file if available
@@ -210,6 +303,23 @@ EOF
       chown -R vagrant:vagrant /home/vagrant/warp-testing
     fi
     
+    # Create a desktop shortcut for easy access
+    sudo -u vagrant mkdir -p /home/vagrant/Desktop
+    cat > /home/vagrant/Desktop/warp-testing.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Warp API Testing
+Comment=Open Warp API testing directory
+Exec=nautilus /home/vagrant/warp-testing
+Icon=folder
+Terminal=false
+StartupNotify=true
+EOF
+    
+    chmod +x /home/vagrant/Desktop/warp-testing.desktop
+    chown vagrant:vagrant /home/vagrant/Desktop/warp-testing.desktop
+    
     # Clean up package cache to save space
     apt-get clean
     apt-get autoremove -y >/dev/null 2>&1
@@ -217,6 +327,7 @@ EOF
     echo "⏰ Setup completed at: $(date)"
     echo "✅ ULTRA-FAST VM setup complete!"
     echo "🎯 VM is ready for snapshot creation and testing"
+    echo "🖱️ GUI will auto-login and show setup status on next boot"
     
   SHELL
   
