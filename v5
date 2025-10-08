@@ -15,6 +15,11 @@ fi
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Activate virtual environment if it exists
+if [[ -f "$SCRIPT_DIR/venv/bin/activate" ]]; then
+    source "$SCRIPT_DIR/venv/bin/activate"
+fi
+
 # Set up Python path and run
 export PYTHONPATH="$SCRIPT_DIR/src:$PYTHONPATH"
 python3 "$SCRIPT_DIR/src/core/v5_tool.py" "$@"
