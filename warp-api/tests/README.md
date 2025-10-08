@@ -80,8 +80,7 @@ cd <repository>/warp-api/tests
 ### Clean and Reset Commands
 ```bash
 ./test.sh clean              # Interactive clean menu
-./test.sh clean-data basic   # Clean old test data (safe)
-./test.sh clean-data full    # Clean all test data
+./test.sh clean-data         # Clean all test data (preserves .gitkeep)
 ./test.sh clean-vm           # Clean VM test data
 ./test.sh clean-logs         # Clean all log files (preserves .gitkeep)
 ./test.sh clean-reports      # Clean all report files (preserves .gitkeep)
@@ -396,21 +395,9 @@ Provides an interactive menu with all clean options and safety confirmations.
 
 ### Data Clean Commands
 
-#### Basic Test Data Cleaning (Safe)
+#### Test Data Cleaning (Comprehensive)
 ```bash
-./test.sh clean-data basic    # Default
-./test.sh clean-data          # Same as basic
-```
-- Removes old log files (older than 1 day)
-- Removes old result files (older than 1 day)
-- Removes old screenshot files (older than 1 day)
-- Removes old report files (older than 1 day)
-- Removes test result archives
-- **Safe**: Keeps recent test data, preserves directory structure
-
-#### Full Test Data Cleaning (Comprehensive)
-```bash
-./test.sh clean-data full
+./test.sh clean-data
 ```
 - **Executes all individual directory cleaning commands:**
   - `clean-logs` - Removes ALL log files (preserves .gitkeep)
@@ -420,6 +407,7 @@ Provides an interactive menu with all clean options and safety confirmations.
 - Removes test result archives and synced API files
 - **Comprehensive**: All test data removed but directory structure preserved
 - **Consistent**: Uses same cleaning functions as individual commands
+- **Always preserves .gitkeep**: Maintains directory structure for version control
 
 ### VM Clean Commands
 

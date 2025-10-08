@@ -542,46 +542,28 @@ clean_vm_test_environment() {
 #######################################
 
 #######################################
-# Clean test data only (lightest cleaning)
-# Arguments:
-#   $1: clean level (basic|full) - optional, defaults to basic
+# Clean test data (comprehensive directory cleaning)
+# Executes all individual directory cleaning functions
+# Always preserves .gitkeep files to maintain directory structure
 #######################################
 clean_test_data() {
-    local level="${1:-basic}"
+    print_message "BLUE" "🧹 Cleaning all test data..."
     
-    print_message "BLUE" "🧹 Cleaning test data ($level)..."
+    # Execute comprehensive directory cleaning using dedicated functions
+    print_message "BLUE" "💫 Executing comprehensive directory cleaning..."
     
-    if [[ "$level" == "full" ]]; then
-        # Full data cleanup - use individual directory cleaning functions
-        print_message "BLUE" "💫 Executing comprehensive directory cleaning..."
-        
-        # Clean each directory using dedicated functions
-        clean_logs_data
-        clean_reports_data
-        clean_results_data
-        clean_screenshots_data
-        
-        # Clean additional artifacts
-        print_message "BLUE" "🧹 Cleaning additional test artifacts..."
-        rm -f test_results_*.tar.gz 2>/dev/null || true
-        rm -f warp_api.py 2>/dev/null || true
-        
-        print_message "GREEN" "✅ Full test data cleaning completed"
-    else
-        # Basic cleaning - keep recent files using time-based approach
-        print_message "BLUE" "💫 Cleaning old test files (older than 1 day)..."
-        
-        find "$LOGS_DIR" -name "*.log" -mtime +1 -delete 2>/dev/null || true
-        find "$RESULTS_DIR" -name "*.tap" -mtime +1 -delete 2>/dev/null || true
-        find "$SCREENSHOTS_DIR" -name "*.png" -mtime +1 -delete 2>/dev/null || true
-        find "$REPORTS_DIR" -name "*.txt" -mtime +1 -delete 2>/dev/null || true
-        find "$REPORTS_DIR" -name "*.html" -mtime +1 -delete 2>/dev/null || true
-        
-        # Clean additional artifacts
-        rm -f test_results_*.tar.gz 2>/dev/null || true
-        
-        print_message "GREEN" "✅ Basic test data cleaning completed"
-    fi
+    # Clean each directory using dedicated functions (preserves .gitkeep)
+    clean_logs_data
+    clean_reports_data
+    clean_results_data
+    clean_screenshots_data
+    
+    # Clean additional artifacts
+    print_message "BLUE" "🧹 Cleaning additional test artifacts..."
+    rm -f test_results_*.tar.gz 2>/dev/null || true
+    rm -f warp_api.py 2>/dev/null || true
+    
+    print_message "GREEN" "✅ Comprehensive test data cleaning completed"
 }
 
 #######################################

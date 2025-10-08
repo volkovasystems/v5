@@ -52,7 +52,7 @@ COMMANDS:
   vm-clone      Restore pristine snapshot (after repository clone)
   
   # Clean Commands:
-  clean-data         Clean test data (basic|full)
+  clean-data         Clean all test data (preserves .gitkeep)
   clean-vm           Clean VM data and .vagrant directory (destructive)
   clean-logs         Clean all log files (preserves .gitkeep)
   clean-reports      Clean all report files (preserves .gitkeep)
@@ -80,8 +80,7 @@ EXAMPLES:
   $0 setup                 # Set up test environment only
   $0 setup --reset         # Set up from complete scratch (destroys VM)
   $0 clean                 # Interactive clean menu
-  $0 clean-data basic   # Basic test data cleanup
-  $0 clean-data full    # Full test data cleanup
+  $0 clean-data         # Comprehensive test data cleanup
   $0 vm-reset           # Reset VM to clean state
   $0 vm-rebuild         # Rebuild VM from scratch
   $0 clean-all          # Nuclear reset (destroys everything)
@@ -136,15 +135,6 @@ parse_args() {
                         shift
                     else
                         export SNAPSHOT_NAME="clean"
-                    fi
-                # For clean-data, capture the level
-                elif [[ "$1" == "clean-data" ]]; then
-                    shift
-                    if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
-                        export CLEAN_DATA_LEVEL="$1"
-                        shift
-                    else
-                        export CLEAN_DATA_LEVEL="basic"
                     fi
                 else
                     shift
@@ -533,9 +523,8 @@ main() {
             interactive_clean
             ;;
         clean-data)
-            local level="${CLEAN_DATA_LEVEL:-basic}"
-            print_header "Cleaning Test Data ($level)"
-            clean_test_data "$level"
+            print_header "Cleaning Test Data"
+            clean_test_data
             ;;
         clean-vm)
             print_header "Cleaning VM Test Data"
