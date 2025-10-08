@@ -225,28 +225,54 @@ EOF
     echo "🔐 Setting up password-less login for vagrant user..."
     passwd -d vagrant  # Remove password requirement
     
-    # Enable auto-login for vagrant user
+    # Enable auto-login for vagrant user with optimized settings for faster startup
     mkdir -p /etc/gdm3
     cat > /etc/gdm3/custom.conf << 'EOF'
-# GDM configuration storage
+# GDM configuration storage - optimized for fast startup
 [daemon]
-# Force X11 instead of Wayland for better compatibility
+# Force X11 instead of Wayland for better compatibility and faster startup
 WaylandEnable=false
 DefaultSession=ubuntu.desktop
 
-# Enabling automatic login
+# Enabling automatic login with no delay
 AutomaticLoginEnable = true
 AutomaticLogin = vagrant
+TimedLoginEnable = true
+TimedLogin = vagrant
+TimedLoginDelay = 0
 
 [security]
+# Disable additional security checks that slow down login
+DisallowTCP = false
 
 [xdmcp]
 
 [chooser]
 
 [debug]
-Enable = true
+# Disable debug to speed up login
+Enable = false
 EOF
+    
+    # Additional optimizations to speed up GNOME startup
+    echo "⚡ Optimizing GNOME for faster startup..."
+    
+    # Disable unnecessary GNOME services that slow startup
+    mkdir -p /home/vagrant/.config/autostart
+    
+    # Disable evolution data server (slows startup)
+    cat > /home/vagrant/.config/autostart/evolution-data-server.desktop << 'EOF'
+[Desktop Entry]
+Hidden=true
+EOF
+    
+    # Disable tracker (file indexing - slows startup)
+    cat > /home/vagrant/.config/autostart/tracker-store.desktop << 'EOF'
+[Desktop Entry]
+Hidden=true
+EOF
+    
+    chown -R vagrant:vagrant /home/vagrant/.config
 
     # Also set up LightDM as fallback (in case GDM3 has issues)
     if command -v lightdm >/dev/null 2>&1; then
@@ -258,39 +284,90 @@ autologin-session=ubuntu
 EOF
     fi
     
-    # Set up a visible startup script that shows progress
+    # Set up a visible startup script that shows progress - optimized for faster startup
     cat > /home/vagrant/.profile << 'EOF'
-# Auto-start terminal with setup status on login
+# Auto-start terminal with setup status on login - minimal wait version
 if [ "$XDG_SESSION_TYPE" = "x11" ] || [ "$XDG_SESSION_TYPE" = "wayland" ]; then
-    # Wait a moment for desktop to load
-    sleep 3
+    # Minimal wait - let desktop services load asynchronously
+    (
+        # Background process - wait for desktop readiness without blocking login
+        while ! pgrep -x gnome-shell >/dev/null 2>&1 && ! pgrep -x gnome-session >/dev/null 2>&1; do
+            sleep 0.5  # Check every half second instead of blind wait
+        done
+        
+        # Desktop is ready - show terminal and auto-run tests
+        gnome-terminal --title="Warp Testing VM - Auto Test Runner" --geometry=120x40 -- bash -c '
+            echo "\033[1;32m🚀 Warp Testing VM - Starting Automated Tests!\033[0m"
+            echo "\033[1;34m📍 Current status: Desktop ready, initializing test environment...\033[0m"
+            echo ""
+            
+            # Navigate to test directory
+            cd /home/vagrant/warp-testing
+            
+            # Show what we found
+            echo "\033[1;36m📂 Test environment contents:\033[0m"
+            ls -la
+            echo ""
+            
+            # Check if warp_api.py exists
+            if [ -f "warp_api.py" ]; then
+                echo "\033[1;32m✅ Found warp_api.py - Starting automated tests...\033[0m"
+                echo "\033[1;33m⏰ Test started at: $(date)\033[0m"
+                echo "\033[1;34m" && echo "=" | head -c 80 && echo "\033[0m"
+                
+                # Run the Warp API tests automatically
+                python3 warp_api.py
+                test_exit_code=$?
+                
+                echo "\033[1;34m" && echo "=" | head -c 80 && echo "\033[0m"
+                echo "\033[1;33m⏰ Test completed at: $(date)\033[0m"
+                
+                if [ $test_exit_code -eq 0 ]; then
+                    echo "\033[1;32m✅ All tests completed successfully!\033[0m"
+                else
+                    echo "\033[1;31m❌ Tests completed with errors (exit code: $test_exit_code)\033[0m"
+                fi
+                
+                echo ""
+                echo "\033[1;36m📋 Test results and logs are available in:\033[0m"
+                echo "  - logs/ directory"
+                echo "  - reports/ directory  "
+                echo "  - results/ directory"
+                echo "  - screenshots/ directory"
+                echo ""
+                echo "\033[1;33m💡 VM will remain open for result inspection\033[0m"
+                
+            else
+                echo "\033[1;31m❌ warp_api.py not found!\033[0m"
+                echo "\033[1;33m📂 Available files:\033[0m"
+                ls -la
+                echo ""
+                echo "\033[1;36m🔧 Manual commands available:\033[0m"
+                echo "  - Check system: htop, df -h, free -h"
+                echo "  - GUI automation tools: xdotool, wmctrl"
+            fi
+            
+            echo ""
+            echo "\033[1;32m🖱️ This terminal will stay open for inspection. Close when done.\033[0m"
+            bash
+        ' 2>/dev/null &
+        
+        # Also show a desktop notification when ready
+        sleep 1  # Brief pause to let terminal open first
+        notify-send "Warp Testing VM" "Setup complete! VM is ready for testing." 2>/dev/null &
+    ) &
     
-    # Open terminal showing setup progress
-    gnome-terminal --title="Warp Testing VM - Ready!" --geometry=100x30 -- bash -c '
-        echo "\033[1;32m✅ Warp Testing VM Setup Complete!\033[0m"
-        echo "\033[1;34m🔧 Available commands:\033[0m"
-        echo "  - Run API tests: cd /home/vagrant/warp-testing && python3 warp_api.py"
-        echo "  - Check system: htop, df -h, free -h"
-        echo "  - GUI automation tools: xdotool, wmctrl"
-        echo ""
-        echo "\033[1;33m💡 This VM is ready for Warp terminal testing!\033[0m"
-        echo ""
-        echo "Press Enter to continue or Ctrl+C to exit..."
-        read
-        bash
-    ' &
-    
-    # Also show a desktop notification
-    notify-send "Warp Testing VM" "Setup complete! VM is ready for testing." &
+    # Don't wait for the background process - continue login immediately
 fi
 EOF
     
     chown vagrant:vagrant /home/vagrant/.profile
     
-    # Restart display manager to apply auto-login immediately
-    echo "🔄 Restarting display manager to enable auto-login..."
-    systemctl restart gdm3 &
-    sleep 2  # Give it a moment to restart
+    # Restart display manager to apply auto-login - non-blocking
+    echo "🔄 Scheduling display manager restart for faster GUI startup..."
+    # Schedule restart without waiting - this eliminates the GUI wait time
+    (systemctl restart gdm3 || systemctl restart lightdm) &
+    # Don't wait for the restart - let it happen in parallel with other setup
     
     # Create optimized directory structure
     echo "📱 Creating test environment..."
