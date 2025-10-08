@@ -304,53 +304,19 @@ run_vm_tests() {
     
     print_message "BLUE" "📝 Session log: $session_log"
     
-    # Create VM test script
-    local vm_script="$VM_TEST_DIR/run_vm_tests.sh"
-    vm_exec "cat > '$vm_script' << 'VMEOF'
-#!/bin/bash
-set -e
-
-cd '$VM_TEST_DIR'
-export DISPLAY=:0
-
-echo \"Running Warp API tests in VM at \$(date)\"
-echo \"Environment: \$(uname -a)\"
-echo \"Python: \$(python3 --version)\"
-echo \"Current directory: \$(pwd)\"
-echo \"Files available:\"
-ls -la
-
-# Check if GUI is available
-if ! pgrep -x 'gnome-shell\|gdm\|Xorg' >/dev/null; then
-    echo \"❌ No GUI environment detected\"
-    exit 1
-fi
-
-# Run the actual tests
-echo \"🧪 Starting Warp API tests...\"
-if [[ -f warp_api.py ]]; then
-    python3 warp_api.py test 2>&1 | tee test_vm_${timestamp}.log
-    exit_code=\\\${PIPESTATUS[0]}
+    # Sync API file to VM first
+    print_message "BLUE" "📄 Syncing warp_api.py to VM..."
+    if ! provision_vm "test_setup"; then
+        print_message "RED" "❌ Failed to sync test files to VM"
+        return 1
+    fi
     
-    echo \"📊 Test completed with exit code: \\\$exit_code\"
-    echo \"=== TEST SUMMARY ===\" >> test_summary_${timestamp}.txt
-    echo \"Date: \$(date)\" >> test_summary_${timestamp}.txt
-    echo \"VM: \$(hostname)\" >> test_summary_${timestamp}.txt
-    echo \"Exit code: \\\$exit_code\" >> test_summary_${timestamp}.txt
+    # Run the automated tests using Vagrant provision
+    print_message "BLUE" "🚀 Starting automated tests in VM..."
+    print_message "BLUE" "💡 This will run the tests inside the VM automatically"
     
-    exit \\\$exit_code
-else
-    echo \"❌ warp_api.py not found!\"
-    exit 1
-fi
-VMEOF"
-    
-    vm_exec "chmod +x '$vm_script'"
-    
-    # Run the test script in VM
-    print_message "BLUE" "🚀 Executing tests in VM..."
     local vm_exit_code=0
-    if ! vm_exec "'$vm_script'"; then
+    if ! provision_vm "run_tests"; then
         vm_exit_code=$?
         print_message "YELLOW" "⚠️ VM tests completed with errors (exit code: $vm_exit_code)"
     else
@@ -360,23 +326,75 @@ VMEOF"
     # Copy results back from VM
     print_message "BLUE" "📋 Retrieving test results from VM..."
     
-    # Copy logs and results
-    copy_from_vm "$VM_TEST_DIR/test_vm_${timestamp}.log" "$LOGS_DIR/" 2>/dev/null || true
-    copy_from_vm "$VM_TEST_DIR/test_summary_${timestamp}.txt" "$REPORTS_DIR/" 2>/dev/null || true
+    # Copy all generated files from VM to host
+    local vm_test_dir="/home/vagrant/warp-testing"
     
-    # Copy any screenshots if they exist
-    vm_exec "find '$VM_TEST_DIR' -name '*.png' -o -name '*.jpg'" | while read -r screenshot; do
-        if [[ -n "$screenshot" ]]; then
-            local basename=$(basename "$screenshot")
-            copy_from_vm "$screenshot" "$SCREENSHOTS_DIR/$basename" 2>/dev/null || true
-        fi
-    done
+    # Copy logs
+    if vm_exec "ls '$vm_test_dir'/logs/*.log >/dev/null 2>&1"; then
+        vm_exec "ls '$vm_test_dir'/logs/*.log" | while read -r logfile; do
+            if [[ -n "$logfile" ]]; then
+                local basename=$(basename "$logfile")
+                copy_from_vm "$logfile" "$LOGS_DIR/$basename" 2>/dev/null || true
+            fi
+        done
+    fi
     
-    # Cleanup test environment in VM
-    print_message "BLUE" "🧹 Cleaning up VM test environment..."
-    cleanup_vm_test_environment
+    # Copy reports
+    if vm_exec "ls '$vm_test_dir'/reports/* >/dev/null 2>&1"; then
+        vm_exec "ls '$vm_test_dir'/reports/*" | while read -r reportfile; do
+            if [[ -n "$reportfile" ]]; then
+                local basename=$(basename "$reportfile")
+                copy_from_vm "$reportfile" "$REPORTS_DIR/$basename" 2>/dev/null || true
+            fi
+        done
+    fi
+    
+    # Copy results  
+    if vm_exec "ls '$vm_test_dir'/results/* >/dev/null 2>&1"; then
+        vm_exec "ls '$vm_test_dir'/results/*" | while read -r resultfile; do
+            if [[ -n "$resultfile" ]]; then
+                local basename=$(basename "$resultfile")
+                copy_from_vm "$resultfile" "$RESULTS_DIR/$basename" 2>/dev/null || true
+            fi
+        done
+    fi
+    
+    # Copy screenshots
+    if vm_exec "ls '$vm_test_dir'/screenshots/*.png >/dev/null 2>&1"; then
+        vm_exec "ls '$vm_test_dir'/screenshots/*.png" | while read -r screenshot; do
+            if [[ -n "$screenshot" ]]; then
+                local basename=$(basename "$screenshot")
+                copy_from_vm "$screenshot" "$SCREENSHOTS_DIR/$basename" 2>/dev/null || true
+            fi
+        done
+    fi
+    
+    # Create a test summary
+    local summary_file="$REPORTS_DIR/test_summary_${timestamp}.txt"
+    cat > "$summary_file" << EOF
+=== WARP API TEST SUMMARY ===
+Date: $(date)
+Host: $(hostname)
+VM: warp-api-testbed
+Test Mode: VM (automated)
+Exit Code: $vm_exit_code
+Session Log: $session_log
+
+Results Location:
+- Logs: $LOGS_DIR
+- Reports: $REPORTS_DIR
+- Results: $RESULTS_DIR  
+- Screenshots: $SCREENSHOTS_DIR
+EOF
     
     print_message "BLUE" "📊 Test session logged to: $session_log"
+    print_message "BLUE" "📋 Test summary: $summary_file"
+    
+    if [[ $vm_exit_code -eq 0 ]]; then
+        print_message "GREEN" "✅ All automated tests passed successfully!"
+    else
+        print_message "YELLOW" "⚠️ Some tests failed - check logs for details"
+    fi
     
     return $vm_exit_code
 }

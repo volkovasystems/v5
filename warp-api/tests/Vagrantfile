@@ -295,60 +295,41 @@ if [ "$XDG_SESSION_TYPE" = "x11" ] || [ "$XDG_SESSION_TYPE" = "wayland" ]; then
             sleep 0.5  # Check every half second instead of blind wait
         done
         
-        # Desktop is ready - show terminal and auto-run tests
-        gnome-terminal --title="Warp Testing VM - Auto Test Runner" --geometry=120x40 -- bash -c '
-            echo "\033[1;32m🚀 Warp Testing VM - Starting Automated Tests!\033[0m"
-            echo "\033[1;34m📍 Current status: Desktop ready, initializing test environment...\033[0m"
+        # Desktop is ready - show setup completion terminal (no auto-testing)
+        gnome-terminal --title="Warp Testing VM - Environment Ready" --geometry=100x30 -- bash -c '
+            echo "\033[1;32m✅ Warp Testing VM Setup Complete!\033[0m"
+            echo "\033[1;34m🔧 Test environment is ready for use\033[0m"
             echo ""
             
-            # Navigate to test directory
+            # Navigate to test directory and show status
             cd /home/vagrant/warp-testing
             
-            # Show what we found
-            echo "\033[1;36m📂 Test environment contents:\033[0m"
+            echo "\033[1;36m📂 Test environment location: /home/vagrant/warp-testing\033[0m"
+            echo "\033[1;36m📋 Available files:\033[0m"
             ls -la
             echo ""
             
-            # Check if warp_api.py exists
             if [ -f "warp_api.py" ]; then
-                echo "\033[1;32m✅ Found warp_api.py - Starting automated tests...\033[0m"
-                echo "\033[1;33m⏰ Test started at: $(date)\033[0m"
-                echo "\033[1;34m" && echo "=" | head -c 80 && echo "\033[0m"
-                
-                # Run the Warp API tests automatically
-                python3 warp_api.py
-                test_exit_code=$?
-                
-                echo "\033[1;34m" && echo "=" | head -c 80 && echo "\033[0m"
-                echo "\033[1;33m⏰ Test completed at: $(date)\033[0m"
-                
-                if [ $test_exit_code -eq 0 ]; then
-                    echo "\033[1;32m✅ All tests completed successfully!\033[0m"
-                else
-                    echo "\033[1;31m❌ Tests completed with errors (exit code: $test_exit_code)\033[0m"
-                fi
-                
-                echo ""
-                echo "\033[1;36m📋 Test results and logs are available in:\033[0m"
-                echo "  - logs/ directory"
-                echo "  - reports/ directory  "
-                echo "  - results/ directory"
-                echo "  - screenshots/ directory"
-                echo ""
-                echo "\033[1;33m💡 VM will remain open for result inspection\033[0m"
-                
+                echo "\033[1;32m✅ warp_api.py is ready for testing\033[0m"
             else
-                echo "\033[1;31m❌ warp_api.py not found!\033[0m"
-                echo "\033[1;33m📂 Available files:\033[0m"
-                ls -la
-                echo ""
-                echo "\033[1;36m🔧 Manual commands available:\033[0m"
-                echo "  - Check system: htop, df -h, free -h"
-                echo "  - GUI automation tools: xdotool, wmctrl"
+                echo "\033[1;33m⚠️ warp_api.py will be synced when tests are run\033[0m"
             fi
             
             echo ""
-            echo "\033[1;32m🖱️ This terminal will stay open for inspection. Close when done.\033[0m"
+            echo "\033[1;33m💡 To run tests, use the test runner from the host:\033[0m"
+            echo "\033[1;36m   ./test.sh test\033[0m"
+            echo ""
+            echo "\033[1;32m🛠️ Available tools in this VM:\033[0m"
+            echo "  - GUI automation: xdotool, wmctrl, imagemagick"
+            echo "  - System monitoring: htop, df -h, free -h"
+            echo "  - Python with pyautogui, pillow, opencv"
+            if command -v warp >/dev/null 2>&1; then
+                echo "  - Warp Terminal: installed and ready"
+            else
+                echo "  - Warp Terminal: not installed (download may have failed)"
+            fi
+            echo ""
+            echo "\033[1;34m🖱️ This VM is ready! Use host test runner to execute tests.\033[0m"
             bash
         ' 2>/dev/null &
         
@@ -424,6 +405,99 @@ EOF
     fi
     
     echo "✅ Test environment ready for execution"
+  SHELL
+  
+  # Test runner - runs Warp API tests inside VM
+  config.vm.provision "run_tests", type: "shell", run: "never", inline: <<-SHELL
+    echo "🧪 Starting Warp API tests inside VM..."
+    export DEBIAN_FRONTEND=noninteractive
+    export DISPLAY=:0
+    
+    # Wait for desktop to be ready
+    echo "⏳ Waiting for desktop environment..."
+    timeout=60
+    elapsed=0
+    while ! pgrep -x gnome-shell >/dev/null 2>&1 && ! pgrep -x gnome-session >/dev/null 2>&1; do
+        if [ $elapsed -ge $timeout ]; then
+            echo "❌ Desktop environment not ready after ${timeout}s"
+            exit 1
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+        echo "⏳ Desktop loading... (${elapsed}/${timeout}s)"
+    done
+    
+    echo "✅ Desktop environment ready"
+    
+    # Navigate to test directory
+    cd /home/vagrant/warp-testing
+    
+    # Show test start info
+    echo "🚀 Starting automated Warp API tests..."
+    echo "⏰ Test started at: $(date)"
+    echo "📍 Test location: $(pwd)"
+    echo "📋 Available files:"
+    ls -la
+    echo ""
+    
+    # Check if warp_api.py exists
+    if [ -f "warp_api.py" ]; then
+        echo "✅ Found warp_api.py - executing tests..."
+        echo "" && echo "=" | head -c 80 && echo ""
+        
+        # Run the Warp API tests as vagrant user with proper display
+        sudo -u vagrant bash -c '
+            export DISPLAY=:0
+            export HOME=/home/vagrant
+            cd /home/vagrant/warp-testing
+            
+            # Run tests and capture exit code
+            python3 warp_api.py
+            echo $? > /tmp/test_exit_code
+        '
+        
+        # Read the exit code
+        test_exit_code=$(cat /tmp/test_exit_code 2>/dev/null || echo "1")
+        rm -f /tmp/test_exit_code
+        
+        echo "" && echo "=" | head -c 80 && echo ""
+        echo "⏰ Test completed at: $(date)"
+        
+        if [ "$test_exit_code" -eq 0 ]; then
+            echo "✅ All tests completed successfully!"
+        else
+            echo "❌ Tests completed with errors (exit code: $test_exit_code)"
+        fi
+        
+        echo ""
+        echo "📋 Test results and logs are available in:"
+        echo "  - logs/ directory"
+        echo "  - reports/ directory"
+        echo "  - results/ directory"
+        echo "  - screenshots/ directory"
+        
+        # Show a summary of what was created
+        if ls logs/*.log >/dev/null 2>&1; then
+            echo "📄 Log files created: $(ls logs/*.log | wc -l)"
+        fi
+        if ls reports/* >/dev/null 2>&1; then
+            echo "📊 Report files created: $(ls reports/* | wc -l)"
+        fi
+        if ls screenshots/*.png >/dev/null 2>&1; then
+            echo "📸 Screenshots created: $(ls screenshots/*.png | wc -l)"
+        fi
+        
+        exit $test_exit_code
+        
+    else
+        echo "❌ warp_api.py not found!"
+        echo "📂 Available files:"
+        ls -la
+        echo ""
+        echo "⚠️ Make sure warp_api.py is synced to the VM"
+        exit 1
+    fi
+    
   SHELL
   
   # Fast cleanup
