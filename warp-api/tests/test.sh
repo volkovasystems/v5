@@ -53,7 +53,7 @@ COMMANDS:
   
   # Clean Commands:
   clean-data         Clean test data (basic|full)
-  clean-vm           Clean VM test data
+  clean-vm           Clean VM data and .vagrant directory (destructive)
   clean-snapshots    Remove all VM snapshots
   clean-all          Full environment reset (nuclear)
 

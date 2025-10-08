@@ -414,13 +414,16 @@ Provides an interactive menu with all clean options and safety confirmations.
 
 ### VM Clean Commands
 
-#### Clean VM Test Data
+#### Clean VM Data and .vagrant Directory
 ```bash
 ./test.sh clean-vm
 ```
-- Cleans test data inside the running VM
-- Removes logs, reports, results, and screenshots from VM
-- Requires VM to be running
+- Stops VM if running
+- Removes ALL contents of .vagrant directory (except .gitkeep files)
+- Cleans all test data directories (logs, reports, results, screenshots)
+- Removes synced files and archives
+- **Destructive**: VM state, snapshots, and configuration are completely removed
+- **Fast reset**: Forces complete VM rebuild on next startup
 
 #### Remove All VM Snapshots
 ```bash

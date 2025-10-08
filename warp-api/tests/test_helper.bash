@@ -568,19 +568,51 @@ clean_test_data() {
 }
 
 #######################################
-# Clean VM test environment (medium cleaning)
+# Clean VM test environment (complete .vagrant cleanup)
 #######################################
 clean_vm_data() {
-    print_message "BLUE" "🧹 Cleaning VM test data..."
+    print_message "BLUE" "🧹 Cleaning VM data and .vagrant directory..."
     
+    # Stop VM if running
     local vm_status=$(get_vm_status)
     if [[ "$vm_status" == "running" ]]; then
-        # Clean test data inside VM
-        vm_exec "cd /home/vagrant/warp-testing && rm -rf logs/* reports/* results/* screenshots/* *.log *.txt 2>/dev/null || true"
-        print_message "GREEN" "✅ VM test data cleaned"
-    else
-        print_message "YELLOW" "⚠️ VM not running, skipping VM data cleaning"
+        print_message "YELLOW" "⏹️ Stopping VM before cleaning..."
+        vagrant halt >/dev/null 2>&1 || true
+        sleep 2
     fi
+    
+    # Remove all .vagrant contents except .gitkeep files
+    if [[ -d ".vagrant" ]]; then
+        print_message "BLUE" "🗑️ Removing all .vagrant contents except .gitkeep files..."
+        
+        # Find and preserve any .gitkeep files first
+        local gitkeep_files=()
+        while IFS= read -r -d '' file; do
+            gitkeep_files+=("$file")
+        done < <(find .vagrant -name ".gitkeep" -print0 2>/dev/null)
+        
+        # Remove all contents of .vagrant
+        rm -rf .vagrant/* .vagrant/.* 2>/dev/null || true
+        
+        # Restore .gitkeep files if any existed
+        for gitkeep_file in "${gitkeep_files[@]}"; do
+            if [[ -n "$gitkeep_file" ]]; then
+                mkdir -p "$(dirname "$gitkeep_file")"
+                touch "$gitkeep_file"
+            fi
+        done
+        
+        print_message "GREEN" "✅ .vagrant directory cleaned (preserved .gitkeep files)"
+    else
+        print_message "YELLOW" "📭 No .vagrant directory found"
+    fi
+    
+    # Also clean test data directories
+    print_message "BLUE" "🧹 Cleaning test data directories..."
+    rm -rf logs/* reports/* results/* screenshots/* 2>/dev/null || true
+    rm -f test_results_*.tar.gz warp_api.py 2>/dev/null || true
+    
+    print_message "GREEN" "✅ VM data and directories cleaned completely"
 }
 
 #######################################
@@ -838,7 +870,7 @@ interactive_clean() {
     echo "Please select clean level:"
     echo "1) Basic test data cleaning (safe)"
     echo "2) Full test data cleaning"
-    echo "3) VM test data cleaning"
+    echo "3) VM data + .vagrant directory cleaning (destructive)"
     echo "4) Reset VM to clean state"
     echo "5) Remove all VM snapshots"
     echo "6) Rebuild VM from scratch"
