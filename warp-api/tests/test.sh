@@ -31,6 +31,7 @@ Warp API Test Runner - Runs pixel-perfect Warp Terminal API tests
 COMMANDS:
   test              Run all tests (default)
   setup             Set up test environment only
+  setup --reset     Set up test environment from complete scratch (destroys VM)
   cleanup           Clean up test artifacts (interactive menu)
   check-system      Check host system capability for VirtualBox testing
   check-system-quick Quick system capability check
@@ -62,6 +63,7 @@ OPTIONS:
   -c, --cleanup LEVEL   Cleanup level: basic|full (default: basic)
   -v, --verbose         Enable verbose output
   -y, --yes, --force    Skip interactive prompts (for automation)
+  -r, --reset           Reset from scratch (for setup command)
   -h, --help            Show this help message
 
 EXAMPLES:
@@ -72,6 +74,7 @@ EXAMPLES:
   $0 vm-init               # Initialize VM for first time (one-time setup)
   $0 vm-restart            # Force restart VM (perfect after interruptions)
   $0 setup                 # Set up test environment only
+  $0 setup --reset         # Set up from complete scratch (destroys VM)
   $0 cleanup               # Interactive cleanup menu
   $0 cleanup-data basic # Basic test data cleanup
   $0 cleanup-data full  # Full test data cleanup
@@ -89,6 +92,7 @@ EXAMPLES:
   # Automation Examples (no prompts):
   $0 cleanup-all --force     # Full reset without confirmation
   $0 vm-rebuild --yes        # Rebuild VM without confirmation
+  $0 setup --reset --force   # Complete setup from scratch without confirmation
   $0 cleanup --force         # Show automation commands
   
   # VM optimized for ultra-fast downloads with parallel processing
@@ -114,6 +118,7 @@ parse_args() {
     local cleanup="$CLEANUP_LEVEL"
     local verbose=false
     local force=false
+    local reset=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -159,6 +164,10 @@ parse_args() {
                 ;;
             -y|--yes|--force)
                 force=true
+                shift
+                ;;
+            -r|--reset)
+                reset=true
                 shift
                 ;;
             -h|--help)
@@ -217,6 +226,7 @@ parse_args() {
     export TEST_CLEANUP="$cleanup"
     export TEST_VERBOSE="$verbose"
     export TEST_FORCE="$force"
+    export TEST_RESET="$reset"
 }
 
 #######################################
@@ -445,9 +455,73 @@ main() {
     
     case "$TEST_COMMAND" in
         setup)
-            setup_environment
-            if [[ "$TEST_MODE" == "vm" ]]; then
-                setup_vm_environment
+            if [[ "$TEST_RESET" == "true" ]]; then
+                print_header "Setting up Test Environment from Scratch"
+                print_message "RED" "🚨 RESET MODE: This will destroy the current VM and rebuild from scratch!"
+                
+                if [[ "$TEST_FORCE" == "true" ]]; then
+                    print_message "YELLOW" "⚠️ Force mode: Rebuilding without confirmation"
+                    confirmed="y"
+                else
+                    print_message "YELLOW" "⚠️ Are you sure you want to completely rebuild the VM? (y/N)"
+                    read -p "Confirm complete reset: " confirmed
+                fi
+                
+                if [[ "$confirmed" =~ ^[Yy]$ ]]; then
+                    print_message "BLUE" "🧨 Destroying current VM and rebuilding from scratch..."
+                    
+                    # First setup the basic environment (sync files, etc.)
+                    setup_environment
+                    
+                    if [[ "$TEST_MODE" == "vm" ]]; then
+                        # Destroy and rebuild VM completely
+                        print_message "BLUE" "💥 Destroying current VM..."
+                        vagrant destroy -f >/dev/null 2>&1 || true
+                        
+                        # Clean up any remaining VirtualBox artifacts
+                        print_message "BLUE" "🧹 Cleaning up VM artifacts..."
+                        VBoxManage unregistervm "$VM_NAME" --delete >/dev/null 2>&1 || true
+                        
+                        # Remove any existing snapshots or state
+                        rm -rf .vagrant/ >/dev/null 2>&1 || true
+                        
+                        # Start fresh VM setup
+                        print_message "BLUE" "🚀 Creating fresh VM from scratch..."
+                        if ! vagrant up --provision; then
+                            print_message "RED" "❌ Failed to create fresh VM"
+                            exit 1
+                        fi
+                        
+                        # Wait for GUI to be ready
+                        if ! wait_for_vm_gui; then
+                            print_message "YELLOW" "⚠️ VM created but GUI may not be fully ready"
+                        fi
+                        
+                        # Create clean snapshot for future use
+                        print_message "BLUE" "📸 Creating fresh 'clean' snapshot..."
+                        if create_vm_snapshot "clean" "Fresh clean state after reset $(date)"; then
+                            print_message "GREEN" "✅ Fresh VM created successfully with clean snapshot!"
+                            print_message "BLUE" "💡 VM is ready for testing with: ./test.sh test"
+                        else
+                            print_message "GREEN" "✅ Fresh VM created successfully!"
+                            print_message "YELLOW" "⚠️ Snapshot creation failed, but VM is ready"
+                        fi
+                    fi
+                    
+                    print_message "GREEN" "🎉 Complete environment reset finished successfully!"
+                else
+                    print_message "BLUE" "Operation cancelled - using regular setup instead"
+                    setup_environment
+                    if [[ "$TEST_MODE" == "vm" ]]; then
+                        setup_vm_environment
+                    fi
+                fi
+            else
+                # Regular setup without reset
+                setup_environment
+                if [[ "$TEST_MODE" == "vm" ]]; then
+                    setup_vm_environment
+                fi
             fi
             ;;
         cleanup)
