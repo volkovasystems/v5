@@ -40,6 +40,10 @@ COMMANDS:
   vm-list       List available VM snapshots
   sync          Sync API file from parent directory
   
+  # Repository Integration:
+  vm-pristine   Create pristine snapshot for repository commit
+  vm-clone      Restore pristine snapshot (after repository clone)
+  
   # Cleanup Commands:
   cleanup-data       Clean test data (basic|full)
   cleanup-vm         Clean VM test data
@@ -51,6 +55,7 @@ OPTIONS:
   -f, --format FORMAT   Output format: tap|pretty (default: tap)
   -c, --cleanup LEVEL   Cleanup level: basic|full (default: basic)
   -v, --verbose         Enable verbose output
+  -y, --yes, --force    Skip interactive prompts (for automation)
   -h, --help            Show this help message
 
 EXAMPLES:
@@ -67,6 +72,17 @@ EXAMPLES:
   $0 vm-snapshot clean  # Create 'clean' snapshot
   $0 vm-restore clean   # Restore from 'clean' snapshot
   $0 vm-list            # List available snapshots
+  
+  # Repository Integration:
+  $0 vm-pristine        # Create pristine snapshot for git commit
+  $0 vm-clone           # Restore pristine snapshot (after git clone)
+  
+  # Automation Examples (no prompts):
+  $0 cleanup-all --force     # Full reset without confirmation
+  $0 vm-rebuild --yes        # Rebuild VM without confirmation
+  $0 cleanup --force         # Show automation commands
+  
+  # VM optimized for ultra-fast downloads with parallel processing
 
 ENVIRONMENT:
   The script automatically:
@@ -88,10 +104,11 @@ parse_args() {
     local format="$DEFAULT_FORMAT"
     local cleanup="$CLEANUP_LEVEL"
     local verbose=false
+    local force=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
-            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|vm-start|vm-stop|vm-status|vm-init|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|sync)
+            test|setup|cleanup|cleanup-data|cleanup-vm|cleanup-snapshots|cleanup-all|vm-start|vm-stop|vm-status|vm-init|vm-reset|vm-rebuild|vm-snapshot|vm-restore|vm-list|vm-pristine|vm-clone|sync)
                 command="$1"
                 # For vm-snapshot and vm-restore, capture the snapshot name
                 if [[ "$1" == "vm-snapshot" ]] || [[ "$1" == "vm-restore" ]]; then
@@ -129,6 +146,10 @@ parse_args() {
                 ;;
             -v|--verbose)
                 verbose=true
+                shift
+                ;;
+            -y|--yes|--force)
+                force=true
                 shift
                 ;;
             -h|--help)
@@ -177,6 +198,7 @@ parse_args() {
     export TEST_FORMAT="$format"
     export TEST_CLEANUP="$cleanup"
     export TEST_VERBOSE="$verbose"
+    export TEST_FORCE="$force"
 }
 
 #######################################
@@ -378,6 +400,11 @@ main() {
     print_message "BLUE" "📋 Format: $TEST_FORMAT"
     print_message "BLUE" "📋 Working Directory: $SCRIPT_DIR"
     
+    # Show VM optimization info for VM-related commands
+    if [[ "$TEST_MODE" == "vm" ]] || [[ "$TEST_COMMAND" =~ ^vm- ]]; then
+        show_vm_optimization_info
+    fi
+    
     case "$TEST_COMMAND" in
         setup)
             setup_environment
@@ -404,12 +431,17 @@ main() {
             ;;
         cleanup-all)
             print_header "Full Environment Reset"
-            print_message "RED" "🚨 This will destroy EVERYTHING! Are you sure? (y/N)"
-            read -p "Confirm full reset: " confirm
-            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            if [[ "$TEST_FORCE" == "true" ]]; then
+                print_message "YELLOW" "🚨 Force mode: Performing full environment reset without confirmation"
                 reset_full_environment
             else
-                print_message "BLUE" "Operation cancelled"
+                print_message "RED" "🚨 This will destroy EVERYTHING! Are you sure? (y/N)"
+                read -p "Confirm full reset: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                    reset_full_environment
+                else
+                    print_message "BLUE" "Operation cancelled"
+                fi
             fi
             ;;
         vm-start)
@@ -441,8 +473,18 @@ main() {
             # Create clean snapshot
             print_message "BLUE" "📸 Creating 'clean' snapshot for reuse..."
             if create_vm_snapshot "clean" "Base clean state after initial setup"; then
-                print_message "GREEN" "🎉 VM initialized successfully with 'clean' snapshot!"
-                print_message "BLUE" "💡 You can now run tests with: ./test.sh test"
+                print_message "GREEN" "✅ VM initialized successfully with 'clean' snapshot!"
+                
+                # Also create pristine snapshot for repository
+                print_message "BLUE" "📸 Creating pristine snapshot for repository..."
+                if create_pristine_snapshot; then
+                    print_message "GREEN" "✅ Pristine snapshot created for repository!"
+                    print_message "BLUE" "💡 You can now run tests with: ./test.sh test"
+                    print_message "BLUE" "💾 Pristine snapshot is ready for git commit"
+                else
+                    print_message "YELLOW" "⚠️ Pristine snapshot creation failed, but VM is ready"
+                    print_message "BLUE" "💡 You can still run tests with: ./test.sh test"
+                fi
             else
                 print_message "YELLOW" "⚠️ VM setup complete but snapshot creation failed"
             fi
@@ -458,9 +500,8 @@ main() {
             ;;
         vm-rebuild)
             print_header "Rebuilding VM from Scratch"
-            print_message "YELLOW" "⚠️ This will destroy the current VM. Are you sure? (y/N)"
-            read -p "Confirm VM rebuild: " confirm
-            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            if [[ "$TEST_FORCE" == "true" ]]; then
+                print_message "YELLOW" "⚠️ Force mode: Rebuilding VM without confirmation"
                 if rebuild_vm; then
                     print_message "GREEN" "✅ VM rebuild completed successfully"
                 else
@@ -468,7 +509,18 @@ main() {
                     exit 1
                 fi
             else
-                print_message "BLUE" "Operation cancelled"
+                print_message "YELLOW" "⚠️ This will destroy the current VM. Are you sure? (y/N)"
+                read -p "Confirm VM rebuild: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                    if rebuild_vm; then
+                        print_message "GREEN" "✅ VM rebuild completed successfully"
+                    else
+                        print_message "RED" "❌ VM rebuild failed"
+                        exit 1
+                    fi
+                else
+                    print_message "BLUE" "Operation cancelled"
+                fi
             fi
             ;;
         vm-snapshot)
@@ -485,6 +537,39 @@ main() {
             print_header "VM Snapshots"
             list_vm_snapshots
             ;;
+        vm-pristine)
+            print_header "Creating Pristine Snapshot"
+            if create_pristine_snapshot; then
+                print_message "GREEN" "✅ Pristine snapshot ready for repository commit"
+                print_message "BLUE" "💡 You can now commit .vagrant/machines/.../Snapshots/ to git"
+            else
+                print_message "RED" "❌ Failed to create pristine snapshot"
+                exit 1
+            fi
+            ;;
+        vm-clone)
+            print_header "Restoring Pristine Snapshot"
+            if restore_pristine_snapshot; then
+                print_message "GREEN" "🎉 Ready for testing! VM restored from pristine snapshot."
+            else
+                print_message "YELLOW" "⚠️ No pristine snapshot found. Running full VM initialization..."
+                if ! vagrant up; then
+                    print_message "RED" "❌ Failed to initialize VM"
+                    exit 1
+                fi
+                
+                if ! wait_for_vm_gui; then
+                    print_message "RED" "❌ VM GUI not ready"
+                    exit 1
+                fi
+                
+                if create_vm_snapshot "clean" "Base clean state after initialization"; then
+                    print_message "GREEN" "✅ VM initialized and clean snapshot created"
+                else
+                    print_message "YELLOW" "⚠️ VM initialized but snapshot creation failed"
+                fi
+            fi
+            ;;
         sync)
             sync_api_file
             ;;
@@ -495,7 +580,18 @@ main() {
             local test_exit_code=0
             
             if [[ "$TEST_MODE" == "vm" ]]; then
-                setup_vm_environment
+                # Try to use pristine snapshot first for fastest startup
+                if snapshot_exists "pristine" && ! snapshot_exists "clean"; then
+                    print_message "BLUE" "📸 Using pristine snapshot for fastest startup..."
+                    if restore_pristine_snapshot; then
+                        print_message "GREEN" "✅ Pristine snapshot restored, ready for testing"
+                    else
+                        setup_vm_environment
+                    fi
+                else
+                    setup_vm_environment
+                fi
+                
                 if ! run_vm_tests; then
                     test_exit_code=$?
                 fi

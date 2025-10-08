@@ -1,12 +1,17 @@
-# Test results and temporary files
-results/
-test_reports/
-test_screenshots/
-*.tmp
-*.log
+# Test data directories - ignore contents but keep directories
+logs/*
+!logs/.gitkeep
+reports/*
+!reports/.gitkeep
+results/*
+!results/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
 
 # Test result archives
 test_results_*.tar.gz
+*.tmp
+*.log
 
 # Synced API file (copied from parent directory during testing)
 warp_api.py
@@ -15,6 +20,17 @@ warp_api.py
 __pycache__/
 *.pyc
 
-# Vagrant
-.vagrant/
-*.log
+# Vagrant runtime data (but keep pristine snapshots)
+.vagrant/machines/*/virtualbox/action_*
+.vagrant/machines/*/virtualbox/creator_uid
+.vagrant/machines/*/virtualbox/id
+.vagrant/machines/*/virtualbox/index_uuid
+.vagrant/machines/*/virtualbox/private_key
+.vagrant/machines/*/virtualbox/synced_folders
+.vagrant/machines/*/virtualbox/vagrant_cwd
+
+# Keep pristine VM snapshots and essential configuration
+# These allow instant testing after clone
+!.vagrant/machines/*/virtualbox/box_meta
+!.vagrant/machines/*/virtualbox/Snapshots/
+!.vagrant/rgloader/

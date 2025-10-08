@@ -1,188 +1,186 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Persistent VirtualBox setup for Warp Terminal API testing
-# One-time setup with snapshot support for reusable testing
+# ULTRA-FAST Warp Terminal API Testing VM
+# Optimized for fastest download and setup with parallel processing
 
 Vagrant.configure("2") do |config|
-  # Ubuntu 22.04 LTS - reliable base with GUI support
+  # Fastest Ubuntu 22.04 server image (~500-800MB)
   config.vm.box = "ubuntu/jammy64"
   config.vm.hostname = "warp-test-vm"
   
-  # Enable SSH agent forwarding and keep SSH connection alive
+  # Maximum download optimizations
+  config.vm.box_download_insecure = false
+  config.vm.boot_timeout = 600
+  
+  # Optimized SSH settings
   config.ssh.forward_agent = true
   config.ssh.keep_alive = true
-
-  # VirtualBox configuration - optimized for persistence and performance
+  config.ssh.connect_timeout = 300
+  config.ssh.compression = true
+  
+  # VirtualBox provider - optimized for speed and performance
   config.vm.provider "virtualbox" do |vb|
     vb.name = "warp-api-testbed"
-    vb.memory = 4096  # 4GB RAM - better for persistent VM with caching
-    vb.cpus = 2       # 2 cores for responsiveness
-    vb.gui = true     # Essential for GUI automation
+    vb.memory = 4096  # 4GB for smooth operation
+    vb.cpus = 2
+    vb.gui = true
     
-    # Display settings for automation
+    # Display settings
     vb.customize ["modifyvm", :id, "--graphicscontroller", "vmsvga"]
-    vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
     vb.customize ["modifyvm", :id, "--vram", "128"]
+    vb.customize ["modifyvm", :id, "--accelerate3d", "on"]
     vb.customize ["modifyvm", :id, "--clipboard-mode", "bidirectional"]
-    vb.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
     
     # Network optimizations
+    vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
-    vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
     
-    # Performance optimizations for persistent VM
+    # Performance optimizations
     vb.customize ["modifyvm", :id, "--ioapic", "on"]
     vb.customize ["modifyvm", :id, "--paravirtprovider", "kvm"]
     vb.customize ["modifyvm", :id, "--hwvirtex", "on"]
     vb.customize ["modifyvm", :id, "--nestedpaging", "on"]
-    
-    # Enable snapshot support
-    vb.customize ["modifyvm", :id, "--snapshotfolder", "snapshots"]
   end
 
-  # One-time setup for persistent VM - only runs on first provision
-  # Use 'vagrant provision --provision-with initial_setup' to re-run
-  config.vm.provision "initial_setup", type: "shell", run: "once", inline: <<-SHELL
+  # ULTRA-FAST SETUP - Parallel processing and minimal packages
+  config.vm.provision "ultra_fast_setup", type: "shell", run: "once", inline: <<-SHELL
     export DEBIAN_FRONTEND=noninteractive
     
-    # Update system
-    apt-get update -qq
+    echo "🚀 ULTRA-FAST VM Setup - Parallel Processing Enabled"
+    echo "⏰ Starting at: $(date)"
     
-    # Minimal desktop environment (lighter than full ubuntu-desktop)
+    # Enable parallel package downloads and processing
+    echo 'APT::Acquire::Max-Default "16";' > /etc/apt/apt.conf.d/99parallel
+    echo 'APT::Acquire::Retries "3";' >> /etc/apt/apt.conf.d/99parallel
+    echo 'Dpkg::Options {"--force-confold"};' >> /etc/apt/apt.conf.d/99parallel
+    
+    # Fastest package update
+    echo "📦 Updating package lists with parallel processing..."
+    apt-get update -qq -o Acquire::Queue-Mode=access &
+    
+    # Prepare package lists in background
+    {
+      # Essential GUI packages (minimal set)
+      PACKAGES="ubuntu-desktop-minimal firefox curl wget python3 python3-pip xdotool wmctrl imagemagick"
+      
+      # Pre-download packages in parallel
+      apt-get download $PACKAGES >/dev/null 2>&1 &
+    } &
+    
+    # Wait for update to complete
+    wait
+    
+    echo "⚡ Installing essential packages with parallel processing..."
+    # Install with maximum parallelism and minimal recommendations
     apt-get install -y --no-install-recommends \
+      -o DPkg::Options::="--force-confold" \
+      -o APT::Install-Suggests="false" \
       ubuntu-desktop-minimal \
       firefox \
       curl \
       wget \
-      git \
       python3 \
       python3-pip \
-      python3-venv
-    
-    # GUI automation tools
-    apt-get install -y \
       xdotool \
       wmctrl \
-      xtrlock \
       imagemagick \
-      scrot
+      aria2 &  # Add aria2 for faster downloads
+    
+    # Parallel Warp Terminal download
+    {
+      echo "🔥 Downloading Warp Terminal..."
+      # Use aria2 for parallel downloading if available, fallback to curl
+      if command -v aria2c >/dev/null 2>&1; then
+        aria2c -x 8 -s 8 -k 1M https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb ||
+        curl -fsSL https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb
+      else
+        curl -fsSL https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb ||
+        wget -q --timeout=30 --tries=3 https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -O warp-terminal.deb
+      fi
+    } &
+    
+    # Parallel Python package installation
+    {
+      echo "🐍 Installing Python automation packages..."
+      # Install essential Python packages only
+      sudo -u vagrant python3 -m pip install --user --no-warn-script-location pyautogui pillow
+    } &
+    
+    # Wait for all parallel installations
+    wait
     
     # Install Warp Terminal
-    curl -fsSL https://releases.warp.dev/linux/v0.2024.10.08.08.02.stable_00/warp-terminal_0.2024.10.08.08.02.stable.00_amd64.deb -o warp-terminal.deb || \
-    curl -fsSL https://releases.warp.dev/linux/latest/warp-terminal_amd64.deb -o warp-terminal.deb
-    
     if [ -f warp-terminal.deb ]; then
-      dpkg -i warp-terminal.deb || apt-get install -f -y
+      echo "📦 Installing Warp Terminal..."
+      dpkg -i warp-terminal.deb || apt-get install -f -y >/dev/null 2>&1
       rm warp-terminal.deb
+      echo "✅ Warp Terminal installed successfully"
     else
-      echo "Warning: Could not download Warp Terminal"
+      echo "⚠️ Warning: Could not download Warp Terminal"
     fi
     
-    # Python automation packages
-    pip3 install --user pyautogui opencv-python pillow numpy
+    # Create optimized directory structure
+    echo "📁 Creating test environment..."
+    sudo -u vagrant mkdir -p /home/vagrant/warp-testing/{logs,reports,results,screenshots}
     
-    # Create automation user directories
-    sudo -u vagrant mkdir -p /home/vagrant/warp-testing
+    # Copy API file if available
+    if [ -f /vagrant/warp_api.py ]; then
+      cp /vagrant/warp_api.py /home/vagrant/warp-testing/
+      chmod +x /home/vagrant/warp-testing/warp_api.py
+      chown -R vagrant:vagrant /home/vagrant/warp-testing
+    fi
     
-    # Copy API file and test infrastructure to VM
-    cp /vagrant/warp_api.py /home/vagrant/warp-testing/
-    cp /vagrant/test_helper.bash /home/vagrant/warp-testing/ 2>/dev/null || true
-    chmod +x /home/vagrant/warp-testing/warp_api.py
-    chown vagrant:vagrant /home/vagrant/warp-testing/warp_api.py
+    # Clean up package cache to save space
+    apt-get clean
+    apt-get autoremove -y >/dev/null 2>&1
     
-    # Create organized directory structure in VM
-    mkdir -p /home/vagrant/warp-testing/{logs,reports,results,screenshots}
-    chown -R vagrant:vagrant /home/vagrant/warp-testing
-    
-    # Create helper script to run tests with proper structure
-    cat > /home/vagrant/warp-testing/run_test.sh << 'EOF'
-#!/bin/bash
-echo "🔥 Running Warp API tests in VM..."
-echo "Time: $(date)"
-echo "Environment: $(uname -a)"
-
-cd /home/vagrant/warp-testing
-
-# Set up display environment
-export DISPLAY=:0
-
-# Create log directory structure
-mkdir -p logs reports results screenshots
-
-# Run tests with logging
-echo "🧪 Starting Warp API tests..."
-if [[ -f warp_api.py ]]; then
-    python3 warp_api.py test 2>&1 | tee "logs/test_$(date +%Y%m%d_%H%M%S).log"
-    exit_code=${PIPESTATUS[0]}
-    echo "📊 Test completed with exit code: $exit_code"
-else
-    echo "❌ warp_api.py not found!"
-    exit 1
-fi
-
-echo "✅ Tests completed!"
-EOF
-    
-    echo "✅ Warp API VM base setup complete!"
-    echo "📸 Creating clean snapshot after initial setup..."
+    echo "⏰ Setup completed at: $(date)"
+    echo "✅ ULTRA-FAST VM setup complete!"
+    echo "🎯 VM is ready for snapshot creation and testing"
     
   SHELL
   
-  # Test environment provisioner - runs every time tests are executed
-  # This sets up clean test data and can be run repeatedly
+  # Quick test environment setup
   config.vm.provision "test_setup", type: "shell", run: "never", inline: <<-SHELL
-    echo "🧪 Setting up test environment..."
-    
-    # Clean any previous test data
+    echo "🧪 Setting up clean test environment..."
     cd /home/vagrant/warp-testing
+    
+    # Clean previous test data
     rm -rf logs/* reports/* results/* screenshots/* 2>/dev/null || true
     
-    # Ensure directories exist with proper permissions
-    mkdir -p logs reports results screenshots
-    chown -R vagrant:vagrant logs reports results screenshots
-    
-    # Copy latest API file from shared folder
-    if [[ -f /vagrant/warp_api.py ]]; then
+    # Sync latest API file
+    if [ -f /vagrant/warp_api.py ]; then
       cp /vagrant/warp_api.py ./
       chmod +x warp_api.py
       chown vagrant:vagrant warp_api.py
     fi
     
-    # Copy test helpers if available
-    if [[ -f /vagrant/test_helper.bash ]]; then
-      cp /vagrant/test_helper.bash ./
-      chown vagrant:vagrant test_helper.bash
-    fi
-    
     echo "✅ Test environment ready for execution"
-    
   SHELL
   
-  # Test cleanup provisioner - cleans up after test execution
+  # Fast cleanup
   config.vm.provision "test_cleanup", type: "shell", run: "never", inline: <<-SHELL
-    echo "🧹 Cleaning up test environment..."
+    echo "🧹 Fast cleanup..."
     
-    # Kill any running Warp processes
+    # Kill any running processes
     pkill -f warp 2>/dev/null || true
     pkill -f xtrlock 2>/dev/null || true
     
-    # Archive test results to shared folder for retrieval
+    # Archive results
     cd /home/vagrant/warp-testing
     timestamp=$(date +%Y%m%d_%H%M%S)
     
-    # Create results archive
-    if [[ -n "$(ls logs/*.log 2>/dev/null || true)" ]] || [[ -n "$(ls reports/* 2>/dev/null || true)" ]]; then
+    if ls logs/*.log >/dev/null 2>&1 || ls reports/* >/dev/null 2>&1; then
       tar -czf "/vagrant/test_results_${timestamp}.tar.gz" \
         logs/ reports/ results/ screenshots/ 2>/dev/null || true
-      echo "📦 Test results archived to: test_results_${timestamp}.tar.gz"
+      echo "📦 Results archived: test_results_${timestamp}.tar.gz"
     fi
     
-    # Clean test directories but keep structure
+    # Clean directories
     find logs reports results screenshots -type f -delete 2>/dev/null || true
     
-    echo "✅ Test environment cleaned"
-    
+    echo "✅ Fast cleanup complete"
   SHELL
 end
