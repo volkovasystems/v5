@@ -237,8 +237,12 @@ setup_environment() {
         exit 1
     fi
     
-    # Clean up previous artifacts
-    clean_artifacts "$TEST_CLEAN"
+    # Clean up previous artifacts (skip for setup-reset to prevent host interference)
+    if [[ "$TEST_COMMAND" == "setup-reset" ]]; then
+        print_message "BLUE" "⚠️ Skipping artifact cleaning during setup-reset to prevent host system interference"
+    else
+        clean_artifacts "$TEST_CLEAN"
+    fi
     
     print_message "GREEN" "✅ Test environment set up successfully"
 }

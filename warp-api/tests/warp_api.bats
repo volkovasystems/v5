@@ -21,6 +21,16 @@ setup() {
     export TEMP_TEST_DIR="/tmp/warp_test_$TEST_ISOLATION_ID"
     mkdir -p "$TEMP_TEST_DIR"
     
+    # Safety guard: Skip tests if running during setup-reset to prevent host system interference
+    if [[ "${TEST_COMMAND:-}" == "setup-reset" ]]; then
+        skip "Skipping test during setup-reset to prevent host Warp terminal interference"
+    fi
+    
+    # Additional safety: Only run destructive tests in VM mode or with explicit permission
+    if [[ "${TEST_MODE:-}" != "vm" && "${ALLOW_HOST_TESTING:-}" != "true" ]]; then
+        skip "Skipping potentially destructive test on host system - use VM mode or set ALLOW_HOST_TESTING=true"
+    fi
+    
     # Ensure directories exist
     mkdir -p "$LOGS_DIR" "$SCREENSHOTS_DIR" "$REPORTS_DIR" "$RESULTS_DIR"
     
