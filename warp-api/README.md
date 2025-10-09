@@ -23,6 +23,7 @@ A focused API for programmatic Warp terminal control with production-ready testi
 ```bash
 cd tests/
 ./test.sh test              # Zero-setup testing with VM automation
+./test.sh setup-reset       # Complete environment reset and setup (one command)
 ./test.sh vm-status         # Check VM state
 ./test.sh vm-clone          # Clone pristine environment
 ```

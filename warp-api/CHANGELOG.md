@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **setup-reset Command**: New comprehensive environment reset and setup command
+  - Equivalent to `clean-all` followed by fresh `setup`
+  - Performs complete environment destruction and rebuild in one command
+  - Available in both main script and interactive clean menu (option 11)
+  - Supports automation with `--force` flag
+- **Missing Function Implementations**: Added previously referenced but undefined functions
+  - `provision_vm()` - Vagrant provisioning wrapper for test setup and execution
+  - `reset_vm_to_clean()` - Clean snapshot restoration with proper error handling
+
+### Fixed
+- **Function Parameter Alignment**: Resolved inconsistent function signatures
+  - `clean_test_data()` now called without deprecated parameters throughout codebase
+  - Removed duplicate `reset_vm_to_clean()` function definition
+  - Fixed `reset_full_environment()` to use parameter-free `clean_test_data` calls
+- **Interactive Menu Alignment**: Fixed interactive clean menu structure
+  - Added missing case 9 (VM rebuild) in menu logic
+  - Corrected case 10 to call `reset_full_environment` instead of `rebuild_vm`
+  - Updated menu options to match actual available commands
+  - Added `setup-reset` option and automation guidance
+
+### Enhanced
+- **Code Organization**: Improved function placement and eliminated redundancy
+- **Documentation Consistency**: Updated help text and command descriptions
+- **Error Handling**: Better error messages and fallback procedures
+- **Command Completeness**: All referenced functions now properly implemented
+
 ## [0.2.1] - 2025-10-08
 
 ### Fixed

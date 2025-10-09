@@ -100,6 +100,7 @@ cd <repository>/warp-api/tests
 ```bash
 ./test.sh setup              # Set up test environment only
 ./test.sh setup-reset        # Complete environment reset and setup (destructive)
+./test.sh setup-reset --force # Complete reset and setup without confirmation
 ./test.sh test -f pretty     # Run tests with pretty output
 ./test.sh sync               # Sync API file
 ```
@@ -507,15 +508,27 @@ Provides an interactive menu with all clean options and safety confirmations.
 #### Complete Environment Reset and Setup
 ```bash
 ./test.sh setup-reset
+./test.sh setup-reset --force    # Skip confirmation prompts (automation)
 ```
 - **Equivalent to**: `clean-all` followed by `setup`
-- Performs complete environment reset first (same as `clean-all`)
-- Then initializes fresh VM environment from scratch
-- Creates new 'clean' and 'pristine' snapshots
-- **One-step solution**: Complete reset and ready-to-test environment
-- **DESTRUCTIVE**: Everything is destroyed and rebuilt
-- Requires confirmation (use `--force` to skip)
-- **Perfect for**: Starting completely fresh or fixing corrupted environments
+- **One-step solution**: Complete reset and ready-to-test environment in single command
+- **Reset phase**: Performs complete environment destruction (same as `clean-all`)
+  - Destroys VM and all snapshots
+  - Removes all test data and artifacts
+  - Cleans caches and temporary files
+  - Forces VM box redownload
+- **Setup phase**: Initializes fresh VM environment from scratch
+  - Creates new VM with ultra-fast provisioning
+  - Sets up complete test environment
+  - Creates new 'clean' and 'pristine' snapshots
+- **Available in interactive menu**: Option 11 in `./test.sh clean`
+- **DESTRUCTIVE**: Everything is destroyed and rebuilt (3-8 minutes)
+- **Automation support**: Use `--force` flag to skip all confirmation prompts
+- **Perfect for**: 
+  - Starting completely fresh after corruption
+  - Fixing complex environment issues
+  - Preparing clean environment for important testing
+  - CI/CD pipeline initialization
 
 ### Automation Support
 All destructive operations support force mode for automation:
