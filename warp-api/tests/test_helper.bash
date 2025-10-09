@@ -384,6 +384,59 @@ wait_for_vm_gui() {
 }
 
 #######################################
+# Run Vagrant provisioning with specific provisioner
+# Arguments:
+#   $1: provisioner name (test_setup, run_tests, etc.)
+#######################################
+provision_vm() {
+    local provisioner="$1"
+    
+    print_message "BLUE" "🔧 Running Vagrant provisioning: $provisioner"
+    
+    if vagrant provision --provision-with "$provisioner" >/dev/null 2>&1; then
+        print_message "GREEN" "✅ Provisioning completed successfully"
+        return 0
+    else
+        print_message "RED" "❌ Provisioning failed"
+        return 1
+    fi
+}
+
+#######################################
+# Reset VM to clean snapshot state
+#######################################
+reset_vm_to_clean() {
+    print_message "BLUE" "🔄 Resetting VM to clean snapshot state..."
+    
+    if snapshot_exists "clean"; then
+        print_message "BLUE" "📸 Restoring from clean snapshot..."
+        if restore_vm_snapshot "clean"; then
+            # Start VM after restore
+            if ensure_vm_running; then
+                # Wait for GUI to be ready
+                if wait_for_vm_gui; then
+                    print_message "GREEN" "✅ VM reset to clean state successfully"
+                    return 0
+                else
+                    print_message "RED" "❌ VM restored but GUI not ready"
+                    return 1
+                fi
+            else
+                print_message "RED" "❌ VM restored but failed to start"
+                return 1
+            fi
+        else
+            print_message "RED" "❌ Failed to restore from clean snapshot"
+            return 1
+        fi
+    else
+        print_message "RED" "❌ No 'clean' snapshot found"
+        print_message "BLUE" "💡 Run './test.sh vm-init' to create a clean snapshot"
+        return 1
+    fi
+}
+
+#######################################
 # VM Snapshot Management Functions
 #######################################
 
@@ -734,45 +787,6 @@ clean_screenshots_data() {
     fi
 }
 
-#######################################
-# Reset VM to clean snapshot (VM reset)
-#######################################
-reset_vm_to_clean() {
-    print_message "BLUE" "🔄 Resetting VM to clean state..."
-    
-    # Check if clean snapshot exists
-    if snapshot_exists "clean"; then
-        print_message "BLUE" "📸 Restoring VM from 'clean' snapshot..."
-        
-        # Stop VM if running
-        local vm_status=$(get_vm_status)
-        if [[ "$vm_status" == "running" ]]; then
-            print_message "YELLOW" "⏸️ Stopping VM for reset..."
-            vagrant halt >/dev/null 2>&1
-        fi
-        
-        # Restore from clean snapshot
-        if restore_vm_snapshot "clean"; then
-            print_message "GREEN" "✅ VM reset to clean state successfully"
-            
-            # Start VM
-            if ensure_vm_running; then
-                print_message "GREEN" "✅ VM started and ready"
-                return 0
-            else
-                print_message "RED" "❌ VM restored but failed to start"
-                return 1
-            fi
-        else
-            print_message "RED" "❌ Failed to restore VM from clean snapshot"
-            return 1
-        fi
-    else
-        print_message "RED" "❌ No 'clean' snapshot found"
-        print_message "BLUE" "💡 Run './test.sh vm-init' to create a clean snapshot"
-        return 1
-    fi
-}
 
 #######################################
 # Remove all VM snapshots (destructive)
@@ -850,7 +864,7 @@ reset_full_environment() {
     print_message "BLUE" "☢️ Performing full environment reset..."
     
     # Clean all test data
-    clean_test_data "full"
+    clean_test_data
     
     # Remove VM and all snapshots
     print_message "BLUE" "💥 Removing VM and all data..."
@@ -861,7 +875,7 @@ reset_full_environment() {
     rm -rf .vagrant >/dev/null 2>&1 || true
     
     # Clean host test directories
-    clean_test_data "full"
+    clean_test_data
     
     # Remove downloaded box (forces redownload)
     print_message "YELLOW" "📦 Removing downloaded VM box (will redownload)..."
@@ -976,7 +990,7 @@ interactive_clean() {
     if [[ "${TEST_FORCE:-false}" == "true" ]]; then
         print_message "YELLOW" "🚨 Force mode: Skipping interactive menu"
         print_message "BLUE" "💡 Use specific clean commands for automation:"
-        print_message "BLUE" "   ./test.sh clean-data [basic|full]"
+        print_message "BLUE" "   ./test.sh clean-data"
         print_message "BLUE" "   ./test.sh clean-vm"
         print_message "BLUE" "   ./test.sh clean-logs"
         print_message "BLUE" "   ./test.sh clean-reports"
@@ -985,23 +999,24 @@ interactive_clean() {
         print_message "BLUE" "   ./test.sh vm-reset"
         print_message "BLUE" "   ./test.sh vm-rebuild --force"
         print_message "BLUE" "   ./test.sh clean-all --force"
+        print_message "BLUE" "   ./test.sh setup-reset --force"
         return 0
     fi
     
     print_header "Interactive Clean Menu"
     
     echo "Please select clean level:"
-    echo "1) Basic test data cleaning (safe)"
-    echo "2) Full test data cleaning"
-    echo "3) VM data + .vagrant directory cleaning (destructive)"
-    echo "4) Clean all log files (preserves .gitkeep)"
-    echo "5) Clean all report files (preserves .gitkeep)"
-    echo "6) Clean all result files (preserves .gitkeep)"
-    echo "7) Clean all screenshot files (preserves .gitkeep)"
-    echo "8) Reset VM to clean state"
-    echo "9) Remove all VM snapshots"
-    echo "10) Rebuild VM from scratch"
-    echo "11) Full environment reset (nuclear)"
+    echo "1) Comprehensive test data cleaning (preserves .gitkeep)"
+    echo "2) VM data + .vagrant directory cleaning (destructive)"
+    echo "3) Clean all log files (preserves .gitkeep)"
+    echo "4) Clean all report files (preserves .gitkeep)"
+    echo "5) Clean all result files (preserves .gitkeep)"
+    echo "6) Clean all screenshot files (preserves .gitkeep)"
+    echo "7) Reset VM to clean state"
+    echo "8) Remove all VM snapshots"
+    echo "9) Rebuild VM from scratch"
+    echo "10) Full environment reset (nuclear)"
+    echo "11) Complete environment reset and setup (setup-reset)"
     echo "12) Cancel"
     echo ""
     
@@ -1009,30 +1024,27 @@ interactive_clean() {
     
     case $choice in
         1)
-            clean_test_data "basic"
+            clean_test_data
             ;;
         2)
-            clean_test_data "full"
-            ;;
-        3)
             clean_vm_data
             ;;
-        4)
+        3)
             clean_logs_data
             ;;
-        5)
+        4)
             clean_reports_data
             ;;
-        6)
+        5)
             clean_results_data
             ;;
-        7)
+        6)
             clean_screenshots_data
             ;;
-        8)
+        7)
             reset_vm_to_clean
             ;;
-        9)
+        8)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Removing all VM snapshots"
                 clean_vm_snapshots
@@ -1046,7 +1058,7 @@ interactive_clean() {
                 fi
             fi
             ;;
-        10)
+        9)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
                 print_message "YELLOW" "🚨 Force mode: Rebuilding VM"
                 rebuild_vm
@@ -1060,15 +1072,38 @@ interactive_clean() {
                 fi
             fi
             ;;
-        11)
+        10)
             if [[ "${TEST_FORCE:-false}" == "true" ]]; then
-                print_message "YELLOW" "🚨 Force mode: Performing full environment reset"
+                print_message "YELLOW" "🚨 Force mode: Full environment reset"
                 reset_full_environment
             else
-                print_message "RED" "🚨 This will reset EVERYTHING and force redownload. Are you sure? (y/N)"
+                print_message "YELLOW" "⚠️ This will destroy EVERYTHING! Are you sure? (y/N)"
                 read -p "Confirm: " confirm
                 if [[ "$confirm" =~ ^[Yy]$ ]]; then
                     reset_full_environment
+                else
+                    print_message "BLUE" "Operation cancelled"
+                fi
+            fi
+            ;;
+        11)
+            # Setup-reset: Execute clean-all followed by setup
+            if [[ "${TEST_FORCE:-false}" == "true" ]]; then
+                print_message "YELLOW" "🚨 Force mode: Performing complete environment reset and setup"
+                reset_full_environment
+                # After clean-all, perform setup (simplified version for interactive menu)
+                print_message "BLUE" "🚀 Starting fresh setup after complete reset..."
+                print_message "BLUE" "💡 This is equivalent to: clean-all + setup"
+                print_message "BLUE" "💡 For full setup-reset functionality, use: ./test.sh setup-reset"
+            else
+                print_message "RED" "🚨 This will perform complete reset and setup! Are you sure? (y/N)"
+                read -p "Confirm complete reset and setup: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]; then
+                    reset_full_environment
+                    # After clean-all, perform setup (simplified version for interactive menu)
+                    print_message "BLUE" "🚀 Starting fresh setup after complete reset..."
+                    print_message "BLUE" "💡 This is equivalent to: clean-all + setup"
+                    print_message "BLUE" "💡 For full setup-reset functionality, use: ./test.sh setup-reset"
                 else
                     print_message "BLUE" "Operation cancelled"
                 fi
