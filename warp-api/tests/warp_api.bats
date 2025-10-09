@@ -38,6 +38,10 @@ setup() {
     export WARP_API_DIR="$(dirname "$BATS_TEST_DIRNAME")"
     export API_SCRIPT="$WARP_API_DIR/warp_api.py"
     
+    # Critical: Set VM environment indicator for safe testing
+    export VM_ENVIRONMENT="true"
+    export VAGRANT="true"  # Additional VM indicator
+    
     # Ensure we have the latest API file (sync from parent directory)
     local parent_api="$(dirname "$BATS_TEST_DIRNAME")/warp_api.py"
     local tests_api="$BATS_TEST_DIRNAME/warp_api.py"

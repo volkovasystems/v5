@@ -55,7 +55,18 @@ class WarpConfig:
 class WarpAPI:
     """Simple, focused Warp Terminal Control API"""
     
-    def __init__(self, log_level=logging.INFO):
+    def __init__(self, log_level=logging.INFO, vm_mode=None):
+        # Critical safety check: Detect if running in VM environment
+        self.vm_mode = vm_mode if vm_mode is not None else self._detect_vm_environment()
+        
+        # CRITICAL SAFETY: Prevent host system interference
+        if not self.vm_mode and os.environ.get('WARP_API_ALLOW_HOST', '').lower() != 'true':
+            raise RuntimeError(
+                "SAFETY VIOLATION: WarpAPI cannot run on host system to prevent "
+                "interference with active Warp terminal. This API is designed for "
+                "VM-only execution. Set WARP_API_ALLOW_HOST=true to override (dangerous)."
+            )
+        
         # Set up logging
         logging.basicConfig(
             level=log_level,
@@ -75,7 +86,49 @@ class WarpAPI:
         # Session tracking
         self.session_actions = []
         
-        self.logger.info(f"WarpAPI initialized with executable: {self.config.warp_executable}")
+        environment = "VM" if self.vm_mode else "HOST"
+        self.logger.info(f"WarpAPI initialized in {environment} mode with executable: {self.config.warp_executable}")
+    
+    def _detect_vm_environment(self):
+        """Detect if running inside a VM (VirtualBox, VMware, etc.)"""
+        try:
+            # Method 1: Check for VM-specific environment variables
+            vm_indicators = [
+                os.environ.get('VM_ENVIRONMENT', '').lower() == 'true',
+                os.environ.get('VAGRANT', '') != '',
+                '/vagrant' in os.environ.get('PATH', ''),
+                os.path.exists('/vagrant'),
+                os.environ.get('USER', '') == 'vagrant',
+            ]
+            
+            if any(vm_indicators):
+                return True
+            
+            # Method 2: Check system characteristics typical of VMs
+            try:
+                # Check DMI/SMBIOS information
+                with open('/sys/class/dmi/id/product_name', 'r') as f:
+                    product_name = f.read().strip().lower()
+                    vm_products = ['virtualbox', 'vmware', 'kvm', 'qemu', 'xen']
+                    if any(vm_prod in product_name for vm_prod in vm_products):
+                        return True
+            except (FileNotFoundError, PermissionError):
+                pass
+            
+            # Method 3: Check for virtualization in cpuinfo
+            try:
+                with open('/proc/cpuinfo', 'r') as f:
+                    cpuinfo = f.read().lower()
+                    if 'hypervisor' in cpuinfo or 'virtualization' in cpuinfo:
+                        return True
+            except (FileNotFoundError, PermissionError):
+                pass
+                
+            return False  # Default to host system if unsure
+            
+        except Exception as e:
+            self.logger.warning(f"VM detection failed, assuming host system: {e}")
+            return False  # Fail safe - assume host to prevent interference
         
     def _log_action(self, action, success, details=None):
         """Log action with timestamp"""

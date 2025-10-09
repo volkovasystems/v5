@@ -24,6 +24,10 @@ VM_NAME="warp-api-testbed"
 VM_USER="vagrant"
 VM_TEST_DIR="/home/vagrant/warp-testing"
 
+# CRITICAL: Set VM environment indicators to prevent host system interference
+export VM_ENVIRONMENT="true"
+export VAGRANT="true"
+
 #######################################
 # Print colored messages
 # Arguments:

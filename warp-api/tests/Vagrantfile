@@ -69,6 +69,22 @@ Vagrant.configure("2") do |config|
     echo "🚀 ROBUST VM Setup - With Error Handling"
     echo "⏰ Starting at: $(date)"
     
+    # CRITICAL: Set VM environment indicators for safety
+    echo "🛡️ Setting VM environment indicators for safe testing..."
+    echo 'export VM_ENVIRONMENT="true"' >> /etc/environment
+    echo 'export VAGRANT="true"' >> /etc/environment
+    echo 'export WARP_API_ALLOW_HOST="false"' >> /etc/environment
+    
+    # Also set for current session
+    export VM_ENVIRONMENT="true"
+    export VAGRANT="true"
+    export WARP_API_ALLOW_HOST="false"
+    
+    # Add to vagrant user's shell profiles
+    echo 'export VM_ENVIRONMENT="true"' >> /home/vagrant/.bashrc
+    echo 'export VAGRANT="true"' >> /home/vagrant/.bashrc
+    echo 'export WARP_API_ALLOW_HOST="false"' >> /home/vagrant/.bashrc
+    
     # Function to show progress in GUI (if available)
     show_progress() {
         local message="$1"
